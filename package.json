@@ -1,0 +1,21 @@
+{
+  "name": "sprout-event-soa-tool",
+  "version": "1.0.0",
+  "description": "Group registration + Statement of Account (SOA) tool for Sprout Solutions events. Collects group registrations into HubSpot, generates SOAs (VAT, early-bird, discount codes), emails them with a customized Shopify cart link, and on payment raises a sales-invoice request and updates the HubSpot Event Payment Status.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "nodemailer": "^9.0.3",
+    "pdfkit": "^0.15.0"
+  },
+  "license": "SEE LICENSE IN \"License free.txt\""
+}

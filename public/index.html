@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sprout Events — Group Registration &amp; Statement of Account</title>
+  <style>
+    :root { --brand:#2E7D32; --ink:#222; --muted:#666; --line:#e2e2e2; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#f5f6f5; }
+    header { background:var(--brand); color:#fff; padding:22px 20px; }
+    header h1 { margin:0; font-size:20px; }
+    header p { margin:4px 0 0; opacity:.9; font-size:13px; }
+    main { max-width:860px; margin:0 auto; padding:20px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:20px; }
+    h2 { margin:0 0 4px; font-size:16px; }
+    .hint { color:var(--muted); font-size:13px; margin:0 0 16px; }
+    label { display:block; font-size:13px; font-weight:600; margin:12px 0 4px; }
+    input, select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .row > div { flex:1; min-width:180px; }
+    .check { display:flex; align-items:center; gap:8px; margin-top:14px; }
+    .check input { width:auto; }
+    .registrant { display:flex; gap:8px; margin-bottom:8px; }
+    .registrant input { flex:1; }
+    button { background:var(--brand); color:#fff; border:0; border-radius:6px; padding:11px 18px; font-size:14px; font-weight:600; cursor:pointer; }
+    button.secondary { background:#fff; color:var(--brand); border:1px solid var(--brand); }
+    .btnrow { margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; }
+    .out { margin-top:16px; font-size:13px; white-space:pre-wrap; background:#f0f4f0; border:1px solid #d6e3d6; border-radius:8px; padding:14px; display:none; }
+    .out.show { display:block; }
+    .totals { font-size:13px; }
+    .totals div { display:flex; justify-content:space-between; padding:3px 0; }
+    .totals .big { font-weight:700; color:var(--brand); border-top:1px solid var(--line); margin-top:6px; padding-top:8px; }
+    a { color:var(--brand); }
+    small { color:var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sprout Events — Group Registration &amp; Statement of Account</h1>
+    <p id="eventName">State of HR Summit 2026</p>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Request a Statement of Account</h2>
+      <p class="hint">Fill in your group's details. We'll compute the total (VAT, early-bird, and any discount code), email you the SOA with a payment link, and record your registration.</p>
+
+      <div class="row">
+        <div>
+          <label>Company Name *</label>
+          <input id="company" placeholder="e.g. KONEKTAO Global BPO Corporation" />
+        </div>
+        <div>
+          <label>TIN</label>
+          <input id="tin" placeholder="000-000-000" />
+        </div>
+      </div>
+      <label>Company Address</label>
+      <input id="address" placeholder="Street, City, Province" />
+
+      <div class="row">
+        <div>
+          <label>Requestor Name *</label>
+          <input id="requestorName" placeholder="Full name" />
+        </div>
+        <div>
+          <label>Requestor Email *</label>
+          <input id="requestorEmail" type="email" placeholder="you@company.com" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Customer Type</label>
+          <select id="customerType">
+            <option value="prospect">Prospect / General Public</option>
+            <option value="client">Existing Sprout Client</option>
+          </select>
+        </div>
+        <div>
+          <label>Registration Type</label>
+          <select id="registrationType">
+            <option value="individual">Individual (per registrant)</option>
+            <option value="tablePublic">Table — General Public</option>
+            <option value="tableClient">Table — Client</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" id="qtyRow" style="display:none;">
+        <div>
+          <label>Number of tables</label>
+          <input id="quantity" type="number" min="1" value="1" />
+        </div>
+      </div>
+
+      <label>Registrants</label>
+      <small>Add each attendee. For individual registration, the number of registrants sets the quantity.</small>
+      <div id="registrants" style="margin-top:8px;"></div>
+      <button class="secondary" type="button" onclick="addRegistrant()">+ Add registrant</button>
+
+      <div class="row">
+        <div>
+          <label>Discount Code</label>
+          <input id="discountCode" placeholder="Optional (e.g. SPROUT10)" />
+        </div>
+        <div class="check" style="align-self:end;">
+          <input id="vatExempt" type="checkbox" />
+          <label for="vatExempt" style="margin:0;">VAT-Exempt entity</label>
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="secondary" type="button" onclick="preview()">Preview total</button>
+        <button type="button" onclick="submitSOA()">Generate &amp; email SOA</button>
+      </div>
+
+      <div id="previewOut" class="out"></div>
+      <div id="submitOut" class="out"></div>
+    </div>
+
+    <p class="hint" style="text-align:center;">
+      Powered by the Sprout Event SOA tool · Payments via Shopify · Records synced to HubSpot
+    </p>
+  </main>
+
+  <script>
+    function addRegistrant(name = '', email = '') {
+      const wrap = document.getElementById('registrants');
+      const row = document.createElement('div');
+      row.className = 'registrant';
+      row.innerHTML =
+        '<input placeholder="Name" value="' + name + '" />' +
+        '<input placeholder="email@company.com" value="' + email + '" />' +
+        '<button class="secondary" type="button" onclick="this.parentNode.remove()">×</button>';
+      wrap.appendChild(row);
+    }
+    addRegistrant();
+
+    document.getElementById('registrationType').addEventListener('change', (e) => {
+      document.getElementById('qtyRow').style.display =
+        e.target.value === 'individual' ? 'none' : 'flex';
+    });
+
+    function collect() {
+      const registrants = [...document.querySelectorAll('#registrants .registrant')]
+        .map((r) => {
+          const [n, em] = r.querySelectorAll('input');
+          return { name: n.value.trim(), email: em.value.trim() };
+        })
+        .filter((r) => r.name || r.email);
+      const type = document.getElementById('registrationType').value;
+      return {
+        company: document.getElementById('company').value.trim(),
+        tin: document.getElementById('tin').value.trim(),
+        address: document.getElementById('address').value.trim(),
+        requestorName: document.getElementById('requestorName').value.trim(),
+        requestorEmail: document.getElementById('requestorEmail').value.trim(),
+        customerType: document.getElementById('customerType').value,
+        registrationType: type,
+        quantity: type === 'individual' ? undefined : Number(document.getElementById('quantity').value),
+        registrants,
+        vatExempt: document.getElementById('vatExempt').checked,
+        discountCode: document.getElementById('discountCode').value.trim() || undefined,
+      };
+    }
+
+    function money(p, n) { return p.currency + ' ' + Number(n).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+    function showTotals(el, p) {
+      el.className = 'out show';
+      el.innerHTML =
+        '<div class="totals">' +
+        '<div><span>' + p.registrationLabel + ' × ' + p.quantity + (p.earlyBird ? ' (Early Bird)' : '') + '</span><span>' + money(p, p.grossBeforeDiscount) + '</span></div>' +
+        (p.discount ? '<div><span>Discount (' + p.discount.code + ')</span><span>- ' + money(p, p.discountAmount) + '</span></div>' : '') +
+        '<div><span>Subtotal</span><span>' + money(p, p.subtotal) + '</span></div>' +
+        '<div><span>' + (p.vatExempt ? 'VAT (Exempt)' : 'Tax (12%)') + '</span><span>' + money(p, p.vat) + '</span></div>' +
+        '<div class="big"><span>Balance Due</span><span>' + money(p, p.total) + '</span></div>' +
+        '</div>';
+    }
+
+    async function preview() {
+      const out = document.getElementById('previewOut');
+      out.className = 'out show'; out.textContent = 'Calculating…';
+      try {
+        const res = await fetch('/api/soa/preview', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(collect())
+        });
+        const data = await res.json();
+        if (!res.ok) { out.textContent = 'Error: ' + (data.error || res.status); return; }
+        showTotals(out, data.pricing);
+      } catch (e) { out.textContent = 'Error: ' + e.message; }
+    }
+
+    async function submitSOA() {
+      const out = document.getElementById('submitOut');
+      out.className = 'out show'; out.textContent = 'Generating SOA and sending email…';
+      try {
+        const res = await fetch('/api/soa', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(collect())
+        });
+        const data = await res.json();
+        if (!res.ok) { out.textContent = 'Error: ' + (data.error || res.status); return; }
+        out.className = 'out show';
+        out.innerHTML =
+          '<strong>SOA created ✔</strong><br>' +
+          'Invoice: ' + data.invoiceNumber + ' · Tracking #' + data.trackingNumber + '<br>' +
+          'Emailed to <strong>' + data.email.to + '</strong> (' + data.email.mode + ')<br>' +
+          '<a href="' + data.pdfUrl + '" target="_blank">Download SOA PDF</a><br><br>' +
+          'Pay here: <a href="' + data.checkout.primary.url + '" target="_blank">' + data.checkout.primary.label + '</a>';
+      } catch (e) { out.textContent = 'Error: ' + e.message; }
+    }
+  </script>
+</body>
+</html>
