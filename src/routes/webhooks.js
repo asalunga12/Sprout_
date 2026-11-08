@@ -119,8 +119,11 @@ async function handleOrderPaid(req, res) {
   try {
     hubspot = await updatePaymentStatus({
       dealId: soa.hubspot?.dealId,
-      contactEmail: soa.requestor?.email,
-      status: 'Paid',
+      contactEmails: [
+        soa.requestor?.email,
+        ...(soa.registrants || []).map((r) => r.email),
+      ].filter(Boolean),
+      paid: true,
     });
   } catch (e) {
     console.error(`[webhook] HubSpot payment-status update failed: ${e.message}`);

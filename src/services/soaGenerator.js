@@ -61,7 +61,7 @@ export function generateSOA(req, now = new Date()) {
     trackingNumber,
     invoiceNumber,
     status: 'issued', // issued -> paid -> invoiced
-    paymentStatus: 'Unpaid', // mirrors HubSpot "Event Payment Status"
+    paymentStatus: 'Pending', // mirrors HubSpot "Event Payment Status" (Pending|Paid)
     createdAt: now.toISOString(),
 
     // parties

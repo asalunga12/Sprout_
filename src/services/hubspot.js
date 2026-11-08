@@ -1,15 +1,20 @@
 // HubSpot adapter (CRM API v3/v4 over fetch — no SDK dependency).
 //
-// Responsibilities:
-//   - Upsert the requestor + each registrant as Contacts.
-//   - Create a Deal representing the group registration, associated to the
-//     requestor contact, tagged with the event and SOA identifiers.
-//   - Update the "Event Payment Status" property when payment lands.
+// Registration data lives on CONTACTS (one per attendee), tagged with the
+// event via the portal's real properties:
+//   event_name, event_registration_type, event_payment_status, jobtitle.
+// A Deal is also created for group/SOA registrations (pipeline + amount),
+// with the coordinator associated.
 //
 // If HUBSPOT_TOKEN is not set, every call is a no-op that logs what WOULD have
 // happened (dry-run), so the rest of the pipeline still works end-to-end.
 import { env } from '../../config/env.js';
-import { event } from '../../config/event.js';
+import {
+  hubspotProps,
+  PAYMENT_STATUS,
+  contactEventProps,
+  registrationTypeValue,
+} from '../../config/hubspot.js';
 
 const BASE = 'https://api.hubapi.com';
 
@@ -59,12 +64,14 @@ async function findContactByEmail(email) {
 }
 
 /** Create or update a contact by email; returns its id. */
-async function upsertContact({ email, name, extraProps = {} }) {
+async function upsertContact({ email, name, title, company, extraProps = {} }) {
   const [firstname, ...rest] = (name || '').trim().split(/\s+/);
   const properties = {
     email,
     ...(firstname ? { firstname } : {}),
     ...(rest.length ? { lastname: rest.join(' ') } : {}),
+    ...(title ? { [hubspotProps.jobTitle]: title } : {}),
+    ...(company ? { company } : {}),
     ...extraProps,
   };
   const existing = await findContactByEmail(email);
@@ -91,36 +98,92 @@ async function associateContactToDeal(dealId, contactId) {
 }
 
 /**
- * Sync a group registration / SOA into HubSpot.
- * @param {object} soa  the generated SOA record
- * @returns {Promise<{ dealId, contactIds, dryRun }>}
+ * Normalise any registration/SOA shape into the fields we need.
+ * Accepts the SOA record (requestor + registrants + billTo + registrationType)
+ * or a front-door registration ({ kind, contacts, company, customerType }).
  */
-export async function syncRegistration(soa) {
-  const statusProp = env('HUBSPOT_PAYMENT_STATUS_PROPERTY', 'event_payment_status');
-  const statusObject = env('HUBSPOT_PAYMENT_STATUS_OBJECT', 'deal');
+function normalise(reg) {
+  const eventName = reg.event?.name ?? reg.eventName;
+  const customerType = reg.customerType === 'client' ? 'client' : 'nonclient';
+  const registrationType = reg.registrationType; // individual|tablePublic|tableClient|undefined
+  const kind =
+    reg.kind ||
+    (['tablePublic', 'tableClient'].includes(registrationType)
+      ? 'group'
+      : registrationType === 'individual'
+        ? 'individual'
+        : 'group');
+  const paid =
+    typeof reg.paid === 'boolean' ? reg.paid : reg.paymentStatus === 'Paid';
+  const company = reg.company ?? reg.billTo?.company ?? '';
+
+  // Everyone who should become a contact.
+  let contacts = reg.contacts;
+  if (!contacts) {
+    const list = [];
+    if (reg.requestor?.email) {
+      list.push({
+        name: reg.requestor.name,
+        email: reg.requestor.email,
+        title: reg.requestor.title,
+        coordinator: true,
+      });
+    }
+    for (const r of reg.registrants || []) {
+      if (r.email && r.email !== reg.requestor?.email) {
+        list.push({ name: r.name, email: r.email, title: r.title });
+      }
+    }
+    contacts = list;
+  }
+  contacts = contacts
+    .filter((c) => c.email)
+    .map((c) => ({ ...c, company: c.company ?? company }));
+
+  return { eventName, customerType, registrationType, kind, paid, company, contacts, reg };
+}
+
+/**
+ * Sync a registration (individual or group) into HubSpot.
+ * Upserts every attendee as a contact tagged with the event, and — for group
+ * registrations with pricing — also creates a deal.
+ * @returns {Promise<{ dryRun:boolean, contactIds:string[], dealId:string|null, registrationType:string }>}
+ */
+export async function syncRegistration(reg) {
+  const n = normalise(reg);
+  const regTypeValue = registrationTypeValue({
+    kind: n.kind,
+    registrationType: n.registrationType,
+    customerType: n.customerType,
+  });
 
   if (!isConfigured()) {
     console.warn(
-      `[hubspot] DRY-RUN — would upsert requestor + ${soa.registrants.length} registrant(s), ` +
-        `create deal "${soa.event.name} — ${soa.billTo.company}" (${soa.invoiceNumber}), ` +
-        `set ${statusProp}="${soa.paymentStatus}".`
+      `[hubspot] DRY-RUN — would upsert ${n.contacts.length} contact(s) for "${n.eventName}" ` +
+        `with ${hubspotProps.registrationType}="${regTypeValue}", ` +
+        `${hubspotProps.paymentStatus}="${n.paid ? PAYMENT_STATUS.paid : PAYMENT_STATUS.unpaid}".`
     );
-    return { dryRun: true, dealId: null, contactIds: [] };
+    return { dryRun: true, contactIds: [], dealId: null, registrationType: regTypeValue };
   }
 
-  // 1) Upsert requestor + registrants as contacts.
-  const contactInputs = [
-    { email: soa.requestor.email, name: soa.requestor.name },
-    ...soa.registrants.filter((r) => r.email),
-  ].filter((c) => c.email);
+  const eventProps = contactEventProps({
+    eventName: n.eventName,
+    kind: n.kind,
+    registrationType: n.registrationType,
+    customerType: n.customerType,
+    paid: n.paid,
+  });
 
+  // 1) Upsert every attendee as a contact carrying the event properties.
   const contactIds = [];
-  for (const c of contactInputs) {
+  for (const c of n.contacts) {
     try {
       const id = await upsertContact({
         email: c.email,
         name: c.name,
-        extraProps: { [`${statusProp}`]: statusObject === 'contact' ? soa.paymentStatus : undefined },
+        title: c.title,
+        company: c.company,
+        extraProps: eventProps,
       });
       contactIds.push(id);
     } catch (e) {
@@ -128,92 +191,82 @@ export async function syncRegistration(soa) {
     }
   }
 
-  // 2) Create a deal for the group.
-  const dealProps = {
-    dealname: `${soa.event.name} — ${soa.billTo.company || soa.requestor.name}`,
-    amount: String(soa.pricing.total),
-    ...(env('HUBSPOT_DEAL_PIPELINE') ? { pipeline: env('HUBSPOT_DEAL_PIPELINE') } : {}),
-    ...(env('HUBSPOT_DEAL_STAGE') ? { dealstage: env('HUBSPOT_DEAL_STAGE') } : {}),
-    // Custom properties (create these in HubSpot or they are ignored/errored):
-    event_name: soa.event.name,
-    soa_invoice_number: soa.invoiceNumber,
-    soa_tracking_number: soa.trackingNumber,
-    ...(statusObject === 'deal' ? { [statusProp]: soa.paymentStatus } : {}),
-  };
-
+  // 2) For group/SOA registrations with an amount, also create a deal.
   let dealId = null;
-  try {
-    const deal = await hsFetch('/crm/v3/objects/deals', {
-      method: 'POST',
-      body: { properties: dealProps },
-    });
-    dealId = deal.id;
-    // Associate the requestor (first contact) to the deal.
-    if (contactIds[0]) await associateContactToDeal(dealId, contactIds[0]);
-  } catch (e) {
-    // Retry without custom props in case they don't exist in the portal yet.
-    console.error(`[hubspot] deal create failed (${e.message}); retrying minimal.`);
+  const total = n.reg.pricing?.total;
+  if (n.kind === 'group' && total !== undefined) {
+    const dealProps = {
+      dealname: `${n.eventName} — ${n.company || n.contacts[0]?.name || 'Group'}`,
+      amount: String(total),
+      ...(env('HUBSPOT_DEAL_PIPELINE') ? { pipeline: env('HUBSPOT_DEAL_PIPELINE') } : {}),
+      ...(env('HUBSPOT_DEAL_STAGE') ? { dealstage: env('HUBSPOT_DEAL_STAGE') } : {}),
+    };
     try {
       const deal = await hsFetch('/crm/v3/objects/deals', {
         method: 'POST',
-        body: {
-          properties: {
-            dealname: dealProps.dealname,
-            amount: dealProps.amount,
-          },
-        },
+        body: { properties: dealProps },
       });
       dealId = deal.id;
       if (contactIds[0]) await associateContactToDeal(dealId, contactIds[0]);
-    } catch (e2) {
-      console.error(`[hubspot] deal create retry failed: ${e2.message}`);
+    } catch (e) {
+      console.error(`[hubspot] deal create failed: ${e.message}`);
     }
   }
 
-  return { dryRun: false, dealId, contactIds };
+  return { dryRun: false, contactIds, dealId, registrationType: regTypeValue };
 }
 
 /**
- * Update the "Event Payment Status" property once payment is confirmed.
+ * Update "Event Payment Status" to Paid once payment is confirmed. Updates the
+ * attendee contacts (where the property lives) and, if given, the deal too.
  * @param {object} opts
- * @param {string} [opts.dealId]
- * @param {string} [opts.contactEmail]
- * @param {string} opts.status  e.g. "Paid"
+ * @param {string[]} [opts.contactEmails]  attendee emails to mark paid
+ * @param {string}   [opts.contactEmail]   single email (convenience)
+ * @param {string}   [opts.dealId]
+ * @param {boolean}  [opts.paid=true]
  */
-export async function updatePaymentStatus({ dealId, contactEmail, status }) {
-  const statusProp = env('HUBSPOT_PAYMENT_STATUS_PROPERTY', 'event_payment_status');
-  const statusObject = env('HUBSPOT_PAYMENT_STATUS_OBJECT', 'deal');
+export async function updatePaymentStatus({
+  contactEmails,
+  contactEmail,
+  dealId,
+  paid = true,
+}) {
+  const value = paid ? PAYMENT_STATUS.paid : PAYMENT_STATUS.unpaid;
+  const emails = contactEmails || (contactEmail ? [contactEmail] : []);
 
   if (!isConfigured()) {
     console.warn(
-      `[hubspot] DRY-RUN — would set ${statusProp}="${status}" on ${statusObject} ` +
-        `(deal=${dealId ?? '-'}, contact=${contactEmail ?? '-'}).`
+      `[hubspot] DRY-RUN — would set ${hubspotProps.paymentStatus}="${value}" on ` +
+        `${emails.length} contact(s)${dealId ? ` + deal ${dealId}` : ''}.`
     );
     return { dryRun: true };
   }
 
-  try {
-    if (statusObject === 'deal' && dealId) {
-      await hsFetch(`/crm/v3/objects/deals/${dealId}`, {
-        method: 'PATCH',
-        body: { properties: { [statusProp]: status } },
-      });
-      return { dryRun: false, updated: 'deal', id: dealId };
-    }
-    if (statusObject === 'contact' && contactEmail) {
-      const id = await findContactByEmail(contactEmail);
+  const updated = { contacts: 0, deal: null };
+  for (const email of emails) {
+    try {
+      const id = await findContactByEmail(email);
       if (id) {
         await hsFetch(`/crm/v3/objects/contacts/${id}`, {
           method: 'PATCH',
-          body: { properties: { [statusProp]: status } },
+          body: { properties: { [hubspotProps.paymentStatus]: value } },
         });
-        return { dryRun: false, updated: 'contact', id };
+        updated.contacts += 1;
       }
+    } catch (e) {
+      console.error(`[hubspot] payment-status update failed for ${email}: ${e.message}`);
     }
-    console.warn('[hubspot] updatePaymentStatus: no target id resolved.');
-    return { dryRun: false, updated: null };
-  } catch (e) {
-    console.error(`[hubspot] updatePaymentStatus failed: ${e.message}`);
-    return { dryRun: false, error: e.message };
   }
+  if (dealId) {
+    try {
+      await hsFetch(`/crm/v3/objects/deals/${dealId}`, {
+        method: 'PATCH',
+        body: { properties: { [hubspotProps.paymentStatus]: value } },
+      });
+      updated.deal = dealId;
+    } catch (e) {
+      console.error(`[hubspot] deal payment-status update failed: ${e.message}`);
+    }
+  }
+  return { dryRun: false, ...updated };
 }
