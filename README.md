@@ -56,8 +56,15 @@ total     = gross                  (VAT-exempt buyers pay `subtotal` instead)
 
 ## API
 
+A live, deployable registration page is served at **`/registration.html`**
+(individual + group). It captures UTM parameters and the `hubspotutk` cookie,
+posts to `/api/registrations`, and submits each attendee to the HubSpot
+"SaaScon PH 2027 Registration Form". The HubSpot tracking code is embedded in
+its `<head>` so attribution works on a real host.
+
 | Method & path | Purpose |
 |---|---|
+| `GET  /registration.html` | Live registration page (individual + group) → HubSpot. |
 | `POST /api/soa/preview` | Compute pricing only (no side effects) — powers the form preview. |
 | `POST /api/soa` | Create an SOA, sync HubSpot, email the PDF, return checkout link. |
 | `GET  /api/soa/:tracking` | Fetch a stored SOA (JSON). |
