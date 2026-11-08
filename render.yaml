@@ -1,0 +1,25 @@
+# One-click deploy config for Render (https://render.com).
+# In Render: New + > Blueprint > point at this repo. It builds and runs the
+# app, serving the live registration page at /registration.html.
+#
+# Form submission needs NO secret, so HUBSPOT_FORM_SUBMIT is set to true here
+# and registrations post to the live HubSpot form on deploy. (To also tag
+# contacts via the CRM API, add HUBSPOT_TOKEN as a secret env var in the
+# dashboard.)
+services:
+  - type: web
+    name: sprout-event-registration
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: node src/server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HUBSPOT_PORTAL_ID
+        value: "2500439"
+      - key: HUBSPOT_FORM_GUID
+        value: "790deae5-8808-4d25-b641-0dd91afa7b2d"
+      - key: HUBSPOT_FORM_SUBMIT
+        value: "true"
