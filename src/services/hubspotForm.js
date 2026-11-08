@@ -35,6 +35,30 @@ const FIELD_MAP = {
   mobile: 'mobilephone',
 };
 
+// Optional UTM -> contact-property mapping. The Sprout portal has NO dedicated
+// utm_* contact properties, so by default UTMs are reflected via HubSpot
+// analytics (the UTM query string in `context.pageUri` + the `hubspotutk`
+// cookie). If you later create utm properties and add them to the form, set the
+// env vars below to also write them as explicit fields.
+const UTM_PROPS = {
+  utm_source: env('HUBSPOT_UTM_SOURCE_PROPERTY'),
+  utm_medium: env('HUBSPOT_UTM_MEDIUM_PROPERTY'),
+  utm_campaign: env('HUBSPOT_UTM_CAMPAIGN_PROPERTY'),
+  utm_term: env('HUBSPOT_UTM_TERM_PROPERTY'),
+  utm_content: env('HUBSPOT_UTM_CONTENT_PROPERTY'),
+};
+
+/** Build explicit UTM fields only for the params that have a configured property. */
+export function buildUtmFields(utm = {}) {
+  const fields = [];
+  for (const [param, prop] of Object.entries(UTM_PROPS)) {
+    if (prop && utm[param]) {
+      fields.push({ objectTypeId: '0-1', name: prop, value: String(utm[param]) });
+    }
+  }
+  return fields;
+}
+
 /** Build the HubSpot form `fields` array for one attendee (objectTypeId 0-1 = contact). */
 export function buildFields(contact) {
   const { firstname, lastname } = splitName(contact.name);
@@ -55,23 +79,42 @@ export function buildFields(contact) {
     }));
 }
 
+/** Ensure the pageUri carries the UTM query string (HubSpot attributes from it). */
+export function pageUriWithUtm(pageUri, utm = {}) {
+  const base = pageUri || 'https://register.sprout.ph/saascon-2027';
+  const entries = Object.entries(utm || {}).filter(([, v]) => v);
+  if (!entries.length || base.includes('?')) return base;
+  const qs = entries
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
+  return `${base}?${qs}`;
+}
+
 /** Submit one attendee to the form. */
 export async function submitToForm(contact, context = {}) {
-  const fields = buildFields(contact);
+  // UTM attribution: HubSpot reads the UTM query string from `pageUri` and ties
+  // the submission to the visitor via `hutk` (the hubspotutk cookie). Explicit
+  // UTM fields are added only when configured (see UTM_PROPS).
+  const fields = [...buildFields(contact), ...buildUtmFields(context.utm)];
+
+  // Carry the landing URL's UTM query string into pageUri even if the caller
+  // only passed the UTMs (so analytics attribution works without a full URL).
+  const pageUri = pageUriWithUtm(context.pageUri, context.utm);
 
   if (!envBool('HUBSPOT_FORM_SUBMIT', false)) {
     console.warn(
       `[hsform] DRY-RUN — would POST ${fields.length} field(s) to form ${FORM_GUID} ` +
-        `for ${contact.email} (${fields.map((f) => f.name).join(', ')}).`
+        `for ${contact.email} (${fields.map((f) => f.name).join(', ')}); ` +
+        `pageUri=${pageUri}${context.hutk ? ' hutk=set' : ''}.`
     );
-    return { dryRun: true, email: contact.email, fields };
+    return { dryRun: true, email: contact.email, fields, pageUri };
   }
 
   const url = `https://api.hsforms.com/submissions/v3/integration/submit/${PORTAL}/${FORM_GUID}`;
   const body = {
     fields,
     context: {
-      pageUri: context.pageUri || 'registration',
+      pageUri,
       pageName: context.pageName || 'SaaScon PH 2027 Registration',
       ...(context.hutk ? { hutk: context.hutk } : {}),
     },

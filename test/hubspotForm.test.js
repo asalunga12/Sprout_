@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildFields } from '../src/services/hubspotForm.js';
+import { buildFields, buildUtmFields, pageUriWithUtm } from '../src/services/hubspotForm.js';
 
 test('buildFields maps a full contact to HubSpot form fields', () => {
   const fields = buildFields({
@@ -36,4 +36,23 @@ test('buildFields splits single-word names without a lastname value', () => {
   assert.equal(byName.firstname, 'Madonna');
   // lastname empty -> omitted
   assert.equal(byName.lastname, undefined);
+});
+
+test('pageUriWithUtm appends UTM params when the URL has no query', () => {
+  const uri = pageUriWithUtm('https://register.sprout.ph/saascon-2027', {
+    utm_source: 'linkedin',
+    utm_campaign: 'saascon27',
+  });
+  assert.ok(uri.includes('utm_source=linkedin'));
+  assert.ok(uri.includes('utm_campaign=saascon27'));
+});
+
+test('pageUriWithUtm keeps an existing query string as-is', () => {
+  const original = 'https://register.sprout.ph/saascon-2027?utm_source=fb&ref=x';
+  assert.equal(pageUriWithUtm(original, { utm_source: 'linkedin' }), original);
+});
+
+test('buildUtmFields is empty unless UTM properties are configured', () => {
+  // No HUBSPOT_UTM_*_PROPERTY env set in the test env -> no explicit fields.
+  assert.deepEqual(buildUtmFields({ utm_source: 'linkedin', utm_campaign: 'x' }), []);
 });

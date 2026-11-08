@@ -14,6 +14,16 @@ function relToCustomerType(rel) {
   return rel === 'client' || rel === 'sprout' ? 'client' : 'nonclient';
 }
 
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+/** Pull the standard UTM params out of an object (body.utm or query-style body). */
+function pickUtm(src = {}) {
+  const out = {};
+  for (const k of UTM_KEYS) {
+    if (src[k] != null && src[k] !== '') out[k] = String(src[k]);
+  }
+  return out;
+}
+
 router.post('/', async (req, res, next) => {
   try {
     const body = req.body || {};
@@ -79,8 +89,14 @@ router.post('/', async (req, res, next) => {
       kind === 'individual'
         ? record.contacts
         : record.registrants.map((r) => ({ ...r, company: record.company }));
+    // UTM / attribution forwarded from the landing page. HubSpot reflects UTMs
+    // via the page URL + the hubspotutk cookie.
+    const utm = pickUtm(body.utm || body);
     const form = await submitRegistrationToForm(formContacts, {
       pageName: `${event.name} Registration`,
+      pageUri: body.pageUri,
+      hutk: body.hutk,
+      utm,
     });
 
     // Optional secondary path: tag contacts via the CRM API (no-op without
