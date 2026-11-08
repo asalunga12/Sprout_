@@ -5,6 +5,7 @@ import express from 'express';
 import { store } from '../lib/store.js';
 import { isEmail, normaliseRegistrants, ValidationError } from '../lib/validate.js';
 import { syncRegistration } from '../services/hubspot.js';
+import { submitRegistrationToForm } from '../services/hubspotForm.js';
 import { event } from '../../config/event.js';
 
 const router = express.Router();
@@ -37,6 +38,7 @@ router.post('/', async (req, res, next) => {
             email: body.email,
             title: body.title || '',
             company: body.company || '',
+            mobile: body.mobile || '',
           },
         ],
         registrantCount: 1,
@@ -71,7 +73,18 @@ router.post('/', async (req, res, next) => {
 
     store.insert('registrations', record);
 
-    // Sync to HubSpot (dry-run if no token).
+    // Primary path: submit each attendee to the HubSpot form (one submission
+    // per contact). Dry-run unless HUBSPOT_FORM_SUBMIT=true.
+    const formContacts =
+      kind === 'individual'
+        ? record.contacts
+        : record.registrants.map((r) => ({ ...r, company: record.company }));
+    const form = await submitRegistrationToForm(formContacts, {
+      pageName: `${event.name} Registration`,
+    });
+
+    // Optional secondary path: tag contacts via the CRM API (no-op without
+    // HUBSPOT_TOKEN).
     const hubspot = await syncRegistration(record);
 
     res.status(201).json({
@@ -79,6 +92,7 @@ router.post('/', async (req, res, next) => {
       registrationId: record.id,
       kind,
       registrantCount: record.registrantCount,
+      form,
       hubspot,
     });
   } catch (e) {
