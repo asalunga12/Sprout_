@@ -27,7 +27,7 @@ function pickUtm(src = {}) {
 router.post('/', async (req, res, next) => {
   try {
     const body = req.body || {};
-    const kind = body.kind === 'individual' ? 'individual' : 'group';
+    const kind = ['individual', 'table'].includes(body.kind) ? body.kind : 'group';
     const customerType = relToCustomerType(body.rel || body.customerType);
 
     let record;
@@ -52,6 +52,30 @@ router.post('/', async (req, res, next) => {
           },
         ],
         registrantCount: 1,
+        paymentStatus: 'Pending',
+      };
+    } else if (kind === 'table') {
+      // Table: a coordinator reserves one or more tables; attendees optional.
+      const company = body.company;
+      const rname = body.rname || body.requestorName;
+      const remail = body.remail || body.requestorEmail;
+      if (!company) throw new ValidationError('company is required');
+      if (!rname) throw new ValidationError('coordinator name is required');
+      if (!isEmail(remail)) throw new ValidationError('A valid coordinator email is required');
+      const tables = Math.max(1, Number(body.tables) || 1);
+      const registrants = normaliseRegistrants(body.registrants); // optional
+      record = {
+        id: `REG-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        kind,
+        event: { name: event.name, code: event.code },
+        customerType,
+        company,
+        billTo: { company, address: body.address || '', tin: body.tin || '' },
+        requestor: { name: rname, email: remail },
+        registrants,
+        tables,
+        registrantCount: registrants.length,
         paymentStatus: 'Pending',
       };
     } else {
@@ -88,7 +112,12 @@ router.post('/', async (req, res, next) => {
     const formContacts =
       kind === 'individual'
         ? record.contacts
-        : record.registrants.map((r) => ({ ...r, company: record.company }));
+        : kind === 'table'
+          ? [
+              { name: record.requestor.name, email: record.requestor.email, company: record.company },
+              ...record.registrants.map((r) => ({ ...r, company: record.company })),
+            ]
+          : record.registrants.map((r) => ({ ...r, company: record.company }));
     // UTM / attribution forwarded from the landing page. HubSpot reflects UTMs
     // via the page URL + the hubspotutk cookie.
     const utm = pickUtm(body.utm || body);

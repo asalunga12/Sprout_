@@ -88,3 +88,8 @@ test('contactEventProps writes the three event properties with portal values', (
   assert.equal(paidProps[hubspotProps.paymentStatus], 'Paid');
   assert.equal(paidProps[hubspotProps.registrationType], 'Individual Registration');
 });
+
+test('table registration (front-door kind) maps to Table Registration', () => {
+  assert.equal(registrationTypeValue({ kind: 'table', customerType: 'nonclient' }), 'Table Registration');
+  assert.equal(registrationTypeValue({ kind: 'table', customerType: 'client' }), 'Table Registration');
+});

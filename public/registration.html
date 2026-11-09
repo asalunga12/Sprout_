@@ -75,8 +75,8 @@
   .panel-b{padding:18px}
 
   /* choice cards */
-  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:760px;margin:0 auto}
-  @media(max-width:620px){.cards{grid-template-columns:1fr}}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;margin:0 auto}
+  @media(max-width:760px){.cards{grid-template-columns:1fr}}
   .opt{display:flex;flex-direction:column;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow);transition:.15s;cursor:pointer}
   .opt:hover{border-color:var(--accent);transform:translateY(-2px)}
   .opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -112,6 +112,12 @@
   .note b{color:var(--ink)}
   .errbox{background:var(--pending-soft);border-color:color-mix(in srgb,var(--pending) 30%,transparent);color:var(--pending)}
   .countpill{margin-left:auto;font-size:11px;font-weight:700;background:var(--accent-soft);color:var(--accent-strong);padding:3px 10px;border-radius:999px}
+  .privacy{margin-top:16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);padding:13px 14px}
+  .privacy-h{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .privacy-h svg{width:14px;height:14px;color:var(--accent-strong)}
+  .privacy p{margin:0 0 10px;font-size:11.5px;color:var(--muted);line-height:1.55}
+  .privacy .consent{display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:12px;color:var(--ink)}
+  .privacy .consent input{width:16px;height:16px;margin-top:1px;accent-color:var(--accent);flex:none}
 
   /* confirmation */
   .conf{max-width:640px;margin:0 auto}
@@ -173,6 +179,12 @@
         <p>Registering several people from your organization. Add everyone and we'll register each attendee in HubSpot.</p>
         <span class="go">Register a group <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
       </button>
+      <button class="opt" onclick="go('table')">
+        <span class="oico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18"/><path d="M5 10V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/><path d="M6 10v10M18 10v10M4 20h16"/></svg></span>
+        <h3>Table</h3>
+        <p>Reserve one or more tables (10 seats each) for your organization. Add attendees now or later.</p>
+        <span class="go">Reserve a table <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+      </button>
     </div>
   </section>
 
@@ -198,8 +210,12 @@
           </div>
         </div>
         <p id="i_err" class="note errbox" hidden></p>
-        <button class="btn" style="margin-top:18px" onclick="submitIndividual()">Complete registration</button>
-        <p class="note">Your details are submitted to the <b>SaaScon PH 2027 registration form</b> in HubSpot, and you'll receive a confirmation email.</p>
+        <div class="privacy">
+          <div class="privacy-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Data Privacy</div>
+          <p>Sprout Solutions Phil., Inc. collects the information above to process your SaaScon PH 2027 registration and contact you about it, in line with the Data Privacy Act of 2012 (RA 10173) and our <a href="https://sprout.ph/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>. To access, correct, or delete your data, email <a href="mailto:privacy@sprout.ph">privacy@sprout.ph</a>.</p>
+          <label class="consent"><input type="checkbox" id="i_consent"><span>I have read and agree to the Privacy Policy, and consent to Sprout Solutions processing my personal data for this registration.</span></label>
+        </div>
+        <button class="btn" style="margin-top:14px" onclick="submitIndividual()">Complete registration</button>
       </div>
     </div>
   </section>
@@ -230,8 +246,51 @@
           <button type="button" class="linkish" onclick="addReg()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add attendee</button>
         </div>
         <p id="g_err" class="note errbox" hidden></p>
-        <button class="btn" style="margin-top:16px" onclick="submitGroup()">Register group</button>
-        <p class="note">Each attendee is submitted to the <b>SaaScon PH 2027 registration form</b> in HubSpot. Your coordinator is recorded as the group contact.</p>
+        <div class="privacy">
+          <div class="privacy-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Data Privacy</div>
+          <p>Sprout Solutions Phil., Inc. collects the information above to process this SaaScon PH 2027 group registration and contact the coordinator about it, in line with the Data Privacy Act of 2012 (RA 10173) and our <a href="https://sprout.ph/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>. To access, correct, or delete the data, email <a href="mailto:privacy@sprout.ph">privacy@sprout.ph</a>.</p>
+          <label class="consent"><input type="checkbox" id="g_consent"><span>I agree to the Privacy Policy, consent to the processing of the personal data provided, and confirm each attendee has agreed to this registration.</span></label>
+        </div>
+        <button class="btn" style="margin-top:14px" onclick="submitGroup()">Register group</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABLE -->
+  <section id="table" hidden>
+    <button class="backlink" onclick="go('choose')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Back</button>
+    <div class="panel" style="max-width:720px;margin:0 auto">
+      <div class="panel-h"><h2>Table Registration</h2><span class="countpill" id="t_count">1 table · 10 seats</span></div>
+      <div class="panel-b">
+        <div class="grid2">
+          <div><label>Company *</label><input type="text" id="t_company" placeholder="Company name"></div>
+          <div><label>TIN</label><input type="text" id="t_tin" placeholder="000-000-000-000"></div>
+        </div>
+        <div class="field" style="margin-top:13px"><label>Company address</label><input type="text" id="t_address" placeholder="Street, City, Province"></div>
+        <div class="grid2" style="margin-top:13px">
+          <div><label>Coordinator name *</label><input type="text" id="t_rname" placeholder="Who we coordinate with"></div>
+          <div><label>Coordinator email *</label><input type="email" id="t_remail" placeholder="coordinator@company.com"></div>
+        </div>
+        <div class="grid2" style="margin-top:13px">
+          <div><label>Number of tables *</label><input type="number" id="t_tables" min="1" value="1"></div>
+          <div><label>Company relationship</label>
+            <div class="seg" id="t_seg">
+              <button type="button" data-v="nonclient" aria-pressed="true">Non-Sprout Client</button>
+              <button type="button" data-v="client" aria-pressed="false">Sprout Client</button>
+            </div>
+          </div>
+        </div>
+        <div class="field"><label>Attendees <span style="color:var(--faint);font-weight:400">— optional, add now or send later</span></label>
+          <div id="t_list"></div>
+          <button type="button" class="linkish" onclick="addRegT()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add attendee</button>
+        </div>
+        <p id="t_err" class="note errbox" hidden></p>
+        <div class="privacy">
+          <div class="privacy-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Data Privacy</div>
+          <p>Sprout Solutions Phil., Inc. collects the information above to process this SaaScon PH 2027 table reservation and contact the coordinator about it, in line with the Data Privacy Act of 2012 (RA 10173) and our <a href="https://sprout.ph/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>. To access, correct, or delete the data, email <a href="mailto:privacy@sprout.ph">privacy@sprout.ph</a>.</p>
+          <label class="consent"><input type="checkbox" id="t_consent"><span>I agree to the Privacy Policy, consent to the processing of the personal data provided, and confirm each attendee has agreed to this registration.</span></label>
+        </div>
+        <button class="btn" style="margin-top:14px" onclick="submitTable()">Reserve table(s)</button>
       </div>
     </div>
   </section>
@@ -276,10 +335,11 @@ function utmPairs(){return Object.entries(ATTR.utm).filter(([,v])=>v);}
 
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const isEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-const state={i_rel:'nonclient',g_rel:'nonclient'};
+const state={i_rel:'nonclient',g_rel:'nonclient',t_rel:'nonclient'};
+const SEATS_PER_TABLE=10;
 
 function go(id){
-  ['choose','individual','group','done'].forEach(s=>document.getElementById(s).hidden=(s!==id));
+  ['choose','individual','group','table','done'].forEach(s=>document.getElementById(s).hidden=(s!==id));
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -287,7 +347,7 @@ function go(id){
 function segInit(id,key){document.getElementById(id).querySelectorAll('button').forEach(b=>b.onclick=()=>{
   b.parentElement.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));
   b.setAttribute('aria-pressed','true');state[key]=b.dataset.v;});}
-segInit('i_seg','i_rel');segInit('g_seg','g_rel');
+segInit('i_seg','i_rel');segInit('g_seg','g_rel');segInit('t_seg','t_rel');
 
 /* group attendees */
 function addReg(name='',title='',email=''){
@@ -301,9 +361,18 @@ function countRegs(){const n=readRegs().length;document.getElementById('g_count'
 
 function relLabel(v){return v==='client'?'Sprout Client':'Non-Sprout Client';}
 
+/* table attendees (optional) */
+function addRegT(name='',title='',email=''){
+  const row=document.createElement('div');row.className='reg-row';
+  row.innerHTML=`<input type="text" class="r-name" placeholder="Full name" value="${esc(name)}"><input type="text" class="r-title" placeholder="Job title" value="${esc(title)}"><input type="email" class="r-email" placeholder="email@company.com" value="${esc(email)}"><button class="reg-del" title="Remove" onclick="this.parentElement.remove()">×</button>`;
+  document.getElementById('t_list').appendChild(row);
+}
+function readRegsT(){return [...document.querySelectorAll('#t_list .reg-row')].map(r=>({name:r.querySelector('.r-name').value.trim(),title:r.querySelector('.r-title').value.trim(),email:r.querySelector('.r-email').value.trim()})).filter(r=>r.name||r.email||r.title);}
+function countTables(){const t=Math.max(1,Number(document.getElementById('t_tables').value)||1);document.getElementById('t_count').textContent=t+' table'+(t===1?'':'s')+' · '+(t*SEATS_PER_TABLE)+' seats';}
+
 /* submit individual */
-/* POST the registration to the backend, which submits to HubSpot. On success,
-   show the confirmation built from the local display data. */
+/* POST the registration to the backend (which submits to HubSpot), then show
+   the confirmation built from the local display data. */
 async function postRegistration(payload, data, errEl, btn){
   payload.pageUri=ATTR.pageUri; payload.hutk=ATTR.hutk; payload.utm=ATTR.utm;
   const label=btn?btn.textContent:'';
@@ -317,8 +386,7 @@ async function postRegistration(payload, data, errEl, btn){
     errEl.hidden=true;
     showConfirmation(data);
   }catch(e){
-    errEl.textContent='Could not reach the server. Please check your connection and try again.';
-    errEl.hidden=false;
+    errEl.textContent='Could not reach the server. Please check your connection and try again.';errEl.hidden=false;
   }finally{
     if(btn){btn.disabled=false;btn.textContent=label;}
   }
@@ -330,6 +398,7 @@ async function submitIndividual(){
   const err=document.getElementById('i_err');
   if(!name){err.textContent='Please enter your full name.';err.hidden=false;return;}
   if(!isEmail(email)){err.textContent='Please enter a valid email address.';err.hidden=false;return;}
+  if(!document.getElementById('i_consent').checked){err.textContent='Please agree to the Privacy Policy to continue.';err.hidden=false;return;}
   err.hidden=true;
   const title=document.getElementById('i_title').value.trim();
   const mobile=document.getElementById('i_mobile').value.trim();
@@ -350,12 +419,33 @@ async function submitGroup(){
   if(!rname){err.textContent='Please enter the coordinator name.';err.hidden=false;return;}
   if(!isEmail(remail)){err.textContent='Please enter a valid coordinator email.';err.hidden=false;return;}
   if(!regs.length){err.textContent='Please add at least one attendee.';err.hidden=false;return;}
+  if(!document.getElementById('g_consent').checked){err.textContent='Please agree to the Privacy Policy to continue.';err.hidden=false;return;}
   err.hidden=true;
   const tin=document.getElementById('g_tin').value.trim();
   const address=document.getElementById('g_address').value.trim();
   const data={type:'Group',company,rname,remail,tin,address,rel:relLabel(state.g_rel),registrants:regs};
   const payload={kind:'group',company,tin,address,rname,remail,rel:state.g_rel,registrants:regs};
   await postRegistration(payload,data,err,document.querySelector('#group .btn'));
+}
+
+/* submit table */
+async function submitTable(){
+  const company=document.getElementById('t_company').value.trim();
+  const rname=document.getElementById('t_rname').value.trim();
+  const remail=document.getElementById('t_remail').value.trim();
+  const err=document.getElementById('t_err');
+  const tables=Math.max(1,Number(document.getElementById('t_tables').value)||1);
+  if(!company){err.textContent='Please enter the company name.';err.hidden=false;return;}
+  if(!rname){err.textContent='Please enter the coordinator name.';err.hidden=false;return;}
+  if(!isEmail(remail)){err.textContent='Please enter a valid coordinator email.';err.hidden=false;return;}
+  if(!document.getElementById('t_consent').checked){err.textContent='Please agree to the Privacy Policy to continue.';err.hidden=false;return;}
+  err.hidden=true;
+  const tin=document.getElementById('t_tin').value.trim();
+  const address=document.getElementById('t_address').value.trim();
+  const registrants=readRegsT();
+  const data={type:'Table',company,rname,remail,tables,tin,address,rel:relLabel(state.t_rel),registrants};
+  const payload={kind:'table',company,tin,address,rname,remail,rel:state.t_rel,tables,registrants};
+  await postRegistration(payload,data,err,document.querySelector('#table .btn'));
 }
 
 /* Map a person to the HubSpot form fields (contact properties). Adjust the
@@ -379,9 +469,14 @@ function showConfirmation(d){
   const cta=document.getElementById('done_cta');
   const steps=document.getElementById('done_steps');
   // Everyone who becomes a form submission.
-  const subs = d.type==='Individual'
-    ? [{name:d.name,email:d.email,title:d.title,company:d.company,mobile:d.mobile}]
-    : d.registrants.map(r=>({name:r.name,email:r.email,title:r.title,company:d.company}));
+  let subs;
+  if(d.type==='Individual'){
+    subs=[{name:d.name,email:d.email,title:d.title,company:d.company,mobile:d.mobile}];
+  } else if(d.type==='Table'){
+    subs=[{name:d.rname,email:d.remail,company:d.company},...d.registrants.map(r=>({name:r.name,email:r.email,title:r.title,company:d.company}))];
+  } else {
+    subs=d.registrants.map(r=>({name:r.name,email:r.email,title:r.title,company:d.company}));
+  }
   const n=subs.length;
   document.getElementById('done_hs').innerHTML=`<div class="hdot">h</div>
     <div>Submitted to the <b>HubSpot form</b> &ldquo;${esc(HUBSPOT_FORM_NAME)}&rdquo; — ${n} submission${n===1?'':'s'}
@@ -413,6 +508,21 @@ function showConfirmation(d){
       <div class="snx"><span class="n">01</span><b>You're in HubSpot</b><span>Your submission is recorded on the SaaScon form.</span></div>
       <div class="snx"><span class="n">02</span><b>Check your email</b><span>Confirmation and payment details follow.</span></div>
       <div class="snx"><span class="n">03</span><b>See you at SaaScon</b><span>Your e-ticket arrives once confirmed.</span></div>`;
+  } else if(d.type==='Table'){
+    document.getElementById('done_title').textContent='Table reserved';
+    document.getElementById('done_sub').textContent=`${d.tables} table${d.tables===1?'':'s'} (${d.tables*SEATS_PER_TABLE} seats) · ${d.rname}`;
+    sum.innerHTML=`<div class="summary">
+      <div class="sh">Table registration · ${esc(d.rel)}</div>
+      <div class="kv"><span class="k">Company</span><span class="v">${esc(d.company)}</span></div>
+      <div class="kv"><span class="k">Tables</span><span class="v">${d.tables} · ${d.tables*SEATS_PER_TABLE} seats</span></div>
+      <div class="kv"><span class="k">Coordinator</span><span class="v">${esc(d.rname)} · ${esc(d.remail)}</span></div>
+      ${d.registrants.length?`<div class="kv"><span class="k">Attendees listed</span><span class="v">${d.registrants.length}</span></div>`:''}
+      ${d.registrants.map(r=>`<div class="att"><div class="av">${esc((r.name||'?').slice(0,1).toUpperCase())}</div><div><div class="nm">${esc(r.name||'—')}${r.title?` <span class="mt">· ${esc(r.title)}</span>`:''}</div><div class="mt">${esc(r.email)}</div></div></div>`).join('')}
+    </div>`;
+    steps.innerHTML=`
+      <div class="snx"><span class="n">01</span><b>Table held in HubSpot</b><span>Recorded as a Table Registration.</span></div>
+      <div class="snx"><span class="n">02</span><b>Coordinator notified</b><span>Payment details sent to ${esc(d.remail)}.</span></div>
+      <div class="snx"><span class="n">03</span><b>Fill your seats</b><span>Send attendee names anytime before the event.</span></div>`;
   } else {
     document.getElementById('done_title').textContent='Group registration received';
     document.getElementById('done_sub').textContent=`${n} attendee${n===1?'':'s'} · coordinated by ${d.rname}`;
@@ -432,14 +542,19 @@ function showConfirmation(d){
 }
 
 function resetAll(){
-  ['i_name','i_title','i_email','i_mobile','i_company','g_company','g_tin','g_address','g_rname','g_remail'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['i_name','i_title','i_email','i_mobile','i_company','g_company','g_tin','g_address','g_rname','g_remail','t_company','t_tin','t_address','t_rname','t_remail'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['i_consent','g_consent','t_consent'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   document.getElementById('g_list').innerHTML='';addReg();
+  document.getElementById('t_list').innerHTML='';
+  const tt=document.getElementById('t_tables');if(tt)tt.value='1';countTables();
   go('choose');
 }
 function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme');const next=cur?(cur==='dark'?'light':'dark'):(matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',next);}
 
 /* init */
 addReg();
+document.getElementById('t_tables').addEventListener('input',countTables);
+countTables();
 </script>
 </body>
 </html>

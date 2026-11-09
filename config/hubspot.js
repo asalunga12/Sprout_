@@ -28,8 +28,12 @@ export const PAYMENT_STATUS = { unpaid: 'Pending', paid: 'Paid' };
 // Map our internal (kind, registrationType, customerType) to one of them.
 export function registrationTypeValue({ kind, registrationType, customerType }) {
   const client = customerType === 'client';
-  // SOA table registrations take precedence when a table type is given.
-  if (registrationType === 'tablePublic' || registrationType === 'tableClient') {
+  // Table registrations (front-door kind 'table' or SOA table types).
+  if (
+    kind === 'table' ||
+    registrationType === 'tablePublic' ||
+    registrationType === 'tableClient'
+  ) {
     return 'Table Registration';
   }
   if (kind === 'individual' || registrationType === 'individual') {
