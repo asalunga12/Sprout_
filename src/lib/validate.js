@@ -14,17 +14,18 @@ export function required(obj, fields) {
 }
 
 /**
- * Normalise a list of registrants. Accepts either an array of
- * { name, email } objects or arrays of parallel name/email fields.
+ * Normalise a list of registrants to { name, title, email }. The job title is
+ * preserved so each additional attendee is registered with their full details.
  */
 export function normaliseRegistrants(input) {
   if (!Array.isArray(input)) return [];
   return input
     .map((r) => ({
       name: String(r?.name ?? '').trim(),
+      title: String(r?.title ?? '').trim(),
       email: String(r?.email ?? '').trim(),
     }))
-    .filter((r) => r.name || r.email);
+    .filter((r) => r.name || r.email || r.title);
 }
 
 export class ValidationError extends Error {
