@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -569,7 +569,7 @@ const SOACFG={
   VAT:0.12,CUR:'PHP',termsDays:30,
   today:new Date().toISOString().slice(0,10),
   cutoff:'2027-06-30',
-  seller:{name:'Sprout Solutions Phil. Inc',lines:['Rockwell Business Center Building North Tower 9th Floor','Sheridan St, corner United St.','Mandaluyong, NCR 1550'],phone:'+63 9176275518',email:'events@sprout.ph'},
+  seller:{name:'Sprout Solutions Phil. Inc',lines:['Rockwell Business Center Building North Tower 9th Floor','Sheridan St, corner United St.','Mandaluyong, NCR 1550'],phone:'+63 9176275518',email:'saascon@sprout.ph'},
   shopify:{domain:'5zhckw-pf.myshopify.com',variant:'53486544126266',
     individual:'https://5zhckw-pf.myshopify.com/products/saascon-ph-2027?variant=53486544126266',
     tablePublic:'https://5zhckw-pf.myshopify.com/pages/table-registration-regular',
@@ -714,67 +714,111 @@ function editSoa(){document.getElementById('soa_result').hidden=true;document.ge
    (the same layout rendered server-side by src/services/pdf.js). Generated in
    the browser with jsPDF so the download works on the live site and in the
    artifact preview alike; falls back to the print dialog if jsPDF is blocked. */
+/* The six SaaScon checkout links, exactly as they appear on the Sprout SOA. */
+const SOA_PAYLINKS=[
+  ['Individual Registration (Non-Sprout Client):','https://saascon.ph/product/saascon-ph-26-general-rate/'],
+  ['Individual Registration (Sprout Client):','https://saascon.ph/product/saascon-ph-26-customer-rate/'],
+  ['Group Registration (Non-Sprout Client):','https://saascon.ph/product/saascon-ph-26-group-general-rate/'],
+  ['Group Registration (Sprout Client):','https://saascon.ph/product/saascon-ph-26-group-customer-rate/'],
+  ['Table Registration (Non-Sprout Client):','https://saascon.ph/product/saascon-ph-26-table-general/'],
+  ['Table Registration (Sprout Client):','https://saascon.ph/product/saascon-ph-26-table-customer/'],
+];
+/* Dates on the SOA print as M/D/YYYY, like the original template. */
+function mdY(ymd){if(!ymd)return '';const[y,m,d]=String(ymd).split('-').map(Number);return `${m}/${d}/${y}`;}
+/* The full-colour Sprout logo (reads the data URI already embedded in --logo-light). */
+function logoDataUri(){try{const v=getComputedStyle(document.documentElement).getPropertyValue('--logo-light').trim();const m=v.match(/url\(["']?(data:[^"')]+)["']?\)/);return m?m[1]:null;}catch(e){return null;}}
+
+/* Build the downloadable SOA PDF, matching the original Sprout SOA template:
+   full-colour logo, seller block, STATEMENT OF ACCOUNT, BILL TO + meta, a
+   bordered DATE/EVENT/REGISTRANTS/QTY/PHP/TOTAL table with a green header, the
+   VAT-category totals, and a payment page with the SaaScon links, banks and notes. */
 function downloadSoa(){
   const r=LAST_SOA; if(!r)return;
   const J=(window.jspdf||{}).jsPDF;
   if(!J){printSoaFallback(r);return;}
-  const p=r.pricing,cur=SOACFG.CUR;
-  const doc=new J({unit:'pt',format:'a4'});
-  const M=40,pageW=doc.internal.pageSize.getWidth(),rightX=pageW-M,cW=pageW-2*M,left=M;
-  const BRAND=[46,125,50],GREY=[102,102,102],LIGHT=[238,238,238],BLUE=[6,69,173];
+  const p=r.pricing,CUR='PHP';
+  const doc=new J({unit:'pt',format:'letter'});
+  const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
+  const left=72,cW=pageW-144,rightX=pageW-72;
+  const GREEN=[50,206,19],BLACK=[0,0,0],GREY=[90,90,90],BLUE=[6,69,173];
   const T=(s,x,yy,o)=>doc.text(String(s),x,yy,o);
-  let y=M+4;
-  // seller header
-  doc.setTextColor(...BRAND).setFont('helvetica','bold').setFontSize(16);T(r.seller.name,left,y);y+=18;
-  doc.setTextColor(...GREY).setFont('helvetica','normal').setFontSize(9);
-  r.seller.lines.forEach(l=>{T(l,left,y);y+=12;});T(r.seller.phone,left,y);y+=12;T(r.seller.email,left,y);
-  // title
-  doc.setTextColor(0,0,0).setFont('helvetica','bold').setFontSize(20);T('STATEMENT OF ACCOUNT',rightX,M+22,{align:'right'});
-  // bill-to + meta
-  let by=y+22;
-  doc.setFont('helvetica','bold').setFontSize(10).setTextColor(0,0,0);T('BILL TO:',left,by);
-  doc.setFont('helvetica','normal').setTextColor(...GREY);let cy=by+14;const bW=cW*0.55;
-  [r.company||'—',r.address||'',r.tin?('TIN: '+r.tin):''].filter(Boolean).forEach(l=>{doc.splitTextToSize(l,bW).forEach(w=>{T(w,left,cy);cy+=12;});});
-  const mX=left+cW*0.6,mLW=80;let my=by;
-  const mRow=(k,v)=>{doc.setFont('helvetica','bold').setTextColor(0,0,0).setFontSize(9);T(k,mX,my);doc.setFont('helvetica','normal').setTextColor(...GREY);T(String(v),mX+mLW,my);my+=14;};
-  mRow('TRACKING#:',r.trackingNumber);mRow('INVOICE:',r.invoiceNumber);mRow('DATE:',r.date);mRow('TERMS:',r.terms);mRow('DUE DATE:',r.dueDate);
-  y=Math.max(cy,my)+10;
-  // line-item table
-  const cols=[{l:'DATE',w:.1,a:'left'},{l:'EVENT / REGISTRANTS',w:.46,a:'left'},{l:'QTY',w:.1,a:'right'},{l:'PHP',w:.19,a:'right'},{l:'TOTAL',w:.15,a:'right'}];
+  const peso2=n=>`PHP ${money(n)}`;
+  let y=72;
+  // --- logo ---
+  const logo=logoDataUri();
+  if(logo){try{doc.addImage(logo,'PNG',left,y,150,150/2.927);}catch(e){}}
+  y+=150/2.927+18;
+  // --- seller block (black) ---
+  doc.setTextColor(...BLACK).setFont('helvetica','normal').setFontSize(10.5);
+  T(r.seller.name,left,y);y+=14;
+  r.seller.lines.forEach(l=>{T(l,left,y);y+=14;});
+  T(r.seller.phone,left,y);y+=14;T(r.seller.email,left,y);y+=22;
+  // --- title ---
+  doc.setFont('helvetica','bold').setFontSize(15);T('STATEMENT OF ACCOUNT',left,y);y+=22;
+  // --- BILL TO + meta ---
+  const topY=y;
+  doc.setFont('helvetica','normal').setFontSize(10.5);
+  T('BILL TO:',left,y);let cy=y+14;const bW=cW*0.5;
+  [r.company,r.address,r.tin?('TIN: '+r.tin):''].filter(Boolean).forEach(l=>{doc.splitTextToSize(l,bW).forEach(w=>{T(w,left,cy);cy+=14;});});
+  const mX=left+cW*0.52;let my=topY;
+  [['TRACKING#: ',r.trackingNumber],['INVOICE: ',r.invoiceNumber],['DATE: ',mdY(r.date)],['TERMS: ',r.terms],['DUE DATE: ',mdY(r.dueDate)]]
+    .forEach(([k,v])=>{T(k+v,mX,my);my+=14;});
+  y=Math.max(cy,my)+14;
+  // --- line-item table (bordered) ---
+  const cols=[{l:'DATE',w:.09},{l:'EVENT',w:.11},{l:'REGISTRANTS',w:.45},{l:'QTY',w:.07},{l:'PHP',w:.14},{l:'TOTAL',w:.14}];
   const cX=[];let acc=left;cols.forEach(c=>{cX.push(acc);acc+=cW*c.w;});
-  doc.setFillColor(...BRAND).rect(left,y,cW,18,'F');doc.setTextColor(255,255,255).setFont('helvetica','bold').setFontSize(9);
-  cols.forEach((c,i)=>{const w=cW*c.w,tx=c.a==='right'?cX[i]+w-4:cX[i]+4;T(c.l,tx,y+12,{align:c.a});});
-  y+=18;
-  const unitLabel=`${peso(p.unit)} per ${p.perSeat?'registrant':'table'} (VAT Inclusive)${p.earlyBird?' · early bird':''}`;
-  const regText=r.registrants.length?r.registrants.map(x=>`${x.name}${x.title?' — '+x.title:''}   ${x.email}`).join('\n'):(p.perSeat?'':`${p.quantity} table(s) · ${p.seats} seats`);
-  const evBlock=[r.event.name,regText,unitLabel].filter(Boolean).join('\n');
-  const rowY=y+10;doc.setTextColor(0,0,0).setFont('helvetica','normal').setFontSize(9);
-  T(r.date,cX[0]+4,rowY);
-  const evLines=doc.splitTextToSize(evBlock,cW*cols[1].w-8);doc.text(evLines,cX[1]+4,rowY);
-  T(String(p.quantity),cX[2]+cW*cols[2].w-4,rowY,{align:'right'});
-  T(`${cur} ${money(p.unit)}`,cX[3]+cW*cols[3].w-4,rowY,{align:'right'});
-  T(`${cur} ${money(p.grossBefore)}`,cX[4]+cW*cols[4].w-4,rowY,{align:'right'});
-  y=rowY+Math.max(evLines.length*11,14)+8;doc.setDrawColor(...LIGHT).line(left,y,rightX,y);y+=16;
-  // totals
-  const tLW=cW*0.28,tX=left+cW*0.55;
-  const tLine=(lb,v,o={})=>{doc.setFont('helvetica',o.bold?'bold':'normal').setFontSize(o.bold?11:10).setTextColor(...(o.color||[0,0,0]));T(lb,tX+tLW-4,y,{align:'right'});T(v,rightX-4,y,{align:'right'});y+=16;};
-  if(p.discount)tLine(`Discount (${p.discount.code}):`,`- ${cur} ${money(p.discountAmount)}`,{color:GREY});
-  tLine('SUBTOTAL:',`${cur} ${money(p.subtotal)}`);
-  tLine(p.vatExempt?'VAT (VAT-Exempt):':'TAX (12%):',`${cur} ${money(p.vat)}`);
-  tLine('TOTAL:',`${cur} ${money(p.total)}`,{bold:true});
-  tLine('BALANCE DUE:',`${cur} ${money(p.total)}`,{bold:true,color:BRAND});
+  const pad=5,lineH=12,headH=20;
+  doc.setFontSize(9);
+  const wrap=(s,w)=>doc.splitTextToSize(String(s||''),w-2*pad);
+  const dateL=wrap(mdY(r.date),cW*cols[0].w);
+  const evL=wrap(r.event.name,cW*cols[1].w);
+  let regL=[];
+  if(r.registrants.length){r.registrants.forEach((x,i)=>{regL=regL.concat(wrap(`${i+1}. ${x.name}/${x.email}`,cW*cols[2].w));});}
+  else{regL=wrap(p.perSeat?`${p.quantity} registrant(s)`:`${p.quantity} table(s) · ${p.seats} seats`,cW*cols[2].w);}
+  const qtyL=[String(p.quantity)];
+  const phpL=wrap(peso2(p.unit),cW*cols[4].w);
+  const totL=wrap(peso2(p.grossBefore),cW*cols[5].w);
+  const nLines=Math.max(dateL.length,evL.length,regL.length,qtyL.length,phpL.length,totL.length);
+  const rowH=nLines*lineH+2*pad;
+  // header bar
+  doc.setFillColor(...GREEN).rect(left,y,cW,headH,'F');
+  doc.setTextColor(255,255,255).setFont('helvetica','bold').setFontSize(9);
+  cols.forEach((c,i)=>T(c.l,cX[i]+pad,y+13));
+  // body
+  const bodyY=y+headH;
+  doc.setTextColor(...BLACK).setFont('helvetica','normal');
+  const ty=bodyY+pad+8;
+  doc.text(dateL,cX[0]+pad,ty);doc.text(evL,cX[1]+pad,ty);doc.text(regL,cX[2]+pad,ty);
+  doc.text(qtyL,cX[3]+pad,ty);doc.text(phpL,cX[4]+pad,ty);doc.text(totL,cX[5]+pad,ty);
+  // borders
+  doc.setDrawColor(...BLACK).setLineWidth(0.5);
+  doc.rect(left,y,cW,headH+rowH);
+  doc.line(left,bodyY,rightX,bodyY);
+  for(let i=1;i<cols.length;i++)doc.line(cX[i],y,cX[i],bodyY+rowH);
+  y=bodyY+rowH+18;
+  // --- totals (VAT categories) ---
+  const vatable=p.vatExempt?0:p.subtotal, exempt=p.vatExempt?p.subtotal:0, pct=p.vatExempt?'0%':'12%';
+  const tLabelX=left+cW*0.36,tValX=tLabelX+172;
+  doc.setFontSize(10);
+  const tRow=(lb,v,bold)=>{doc.setFont('helvetica',bold?'bold':'normal').setTextColor(...BLACK);T(lb,tLabelX,y);T(v,tValX,y);y+=16;};
+  tRow('VAT ZERO-RATED SALES:',peso2(0));
+  tRow('VATABLE SALES:',peso2(vatable));
+  tRow('VAT-EXEMPT SALES:',peso2(exempt));
+  tRow(`VAT (${pct}):`,peso2(p.vat));
+  if(p.discount)tRow(`Less discount (${p.discount.code}):`,`- ${peso2(p.discountAmount)}`);
   y+=8;
-  // payment section
-  doc.setFont('helvetica','bold').setFontSize(11).setTextColor(0,0,0);T('Kindly settle the payment through the following:',left,y);y+=16;
-  doc.setFont('helvetica','bold').setFontSize(9).setTextColor(...BRAND);T(`${r.checkout.primary.label} (recommended for you):`,left,y);y+=12;
-  doc.setFont('helvetica','normal').setTextColor(...BLUE);
-  doc.splitTextToSize(r.checkout.primary.url,cW).forEach(w=>{doc.textWithLink(w,left,y,{url:r.checkout.primary.url});y+=12;});
-  y+=2;doc.setFontSize(9);
-  r.checkout.options.forEach(o=>{doc.setFont('helvetica','bold').setTextColor(0,0,0);T(`${o.label}: `,left,y);const lw=doc.getTextWidth(`${o.label}: `);doc.setFont('helvetica','normal').setTextColor(...BLUE);doc.textWithLink(o.url,left+lw,y,{url:o.url});y+=13;});
-  y+=6;doc.setFont('helvetica','normal').setFontSize(9).setTextColor(0,0,0);T('Otherwise, you may also settle via bank deposit:',left,y);y+=14;
-  r.banks.forEach(b=>{doc.setFont('helvetica','bold').setTextColor(0,0,0);T(b.bank,left,y);y+=12;doc.setFont('helvetica','normal').setTextColor(...GREY);T(`Account name: ${b.accountName}   |   Account #: ${b.accountNumber}   |   ${b.accountType} (${b.currency})`,left,y);y+=14;});
-  y+=4;doc.setTextColor(...GREY).setFontSize(8);
-  r.paymentNotes.forEach(n=>{const nl=doc.splitTextToSize(n,cW);doc.text(nl,left,y);y+=nl.length*10+4;});
+  tRow('TOTAL:',peso2(p.total));
+  tRow('BALANCE DUE:',peso2(p.total),true);
+  // --- payment page ---
+  doc.addPage();
+  let py=72;const link=(url)=>{doc.setTextColor(...BLUE);doc.splitTextToSize(url,cW).forEach(w=>{doc.textWithLink(w,left,py,{url});const tw=doc.getTextWidth(w);doc.setDrawColor(...BLUE).setLineWidth(0.4).line(left,py+1.5,left+tw,py+1.5);py+=13;});};
+  doc.setFont('helvetica','normal').setFontSize(10.5).setTextColor(...BLACK);
+  T('Kindly settle the payment through the following:',left,py);py+=22;
+  SOA_PAYLINKS.forEach(([lb,url])=>{doc.setTextColor(...BLACK);T(lb,left,py);py+=13;link(url);py+=9;});
+  doc.setTextColor(...BLACK);T('Otherwise, you may also settle via bank deposit.',left,py);py+=20;
+  doc.splitTextToSize('Kindly indicate Company Name and/or Invoice number on remarks field (ex.: Sprout Solutions - INV00012345)',cW).forEach(w=>{T(w,left,py);py+=13;});py+=12;
+  r.banks.forEach(b=>{['Bank: '+b.bank,'Bank account name: '+b.accountName,'Bank account number: '+b.accountNumber,'Account Type: '+b.accountType,'Currency: '+b.currency].forEach(l=>{T(l,left,py);py+=13;});py+=12;});
+  doc.splitTextToSize('Once payment has been made, kindly send the proof of payment at your earliest convenience. This will allow us to validate your payment and post it to our system promptly.',cW).forEach(w=>{T(w,left,py);py+=13;});
   doc.save(`SOA-${r.invoiceNumber}.pdf`);
 }
 /* If jsPDF can't load, open a clean print view of the SOA document. */
