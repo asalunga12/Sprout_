@@ -514,14 +514,21 @@ function showConfirmation(d){
   const payBtn=document.getElementById('pay_cta');
   const soaBtn=document.getElementById('soa_cta');
   payBtn.href=PAYMENT_URL;
-  // Carry the chosen registration type into the SOA console so its Registration
-  // Type pre-selects to match (Group→individual, Table→tablePublic/tableClient).
+  // Hand the whole booking to the SOA console so its Registration Type, the
+  // registrant list and the quantity all reflect automatically. Packed as
+  // base64 JSON in ?h= (Group→individual, Table→tablePublic/tableClient).
   const _rel=d.rel==='Sprout Client'?'client':'prospect';
   let _rt='';
   if(d.type==='Group')_rt='individual';
   else if(d.type==='Table')_rt=(_rel==='client'?'tableClient':'tablePublic');
-  const _q=(_rt?'regtype='+_rt+'&':'')+'rel='+_rel;
-  soaBtn.href=SOA_URL+(SOA_URL.includes('?')?'&':'?')+_q;
+  const _regs=(d.type==='Individual'
+    ? [{n:d.name||'',t:d.title||'',e:d.email||''}]
+    : (d.registrants||[]).map(r=>({n:r.name||'',t:r.title||'',e:r.email||''})));
+  const _payload={rt:_rt,rel:_rel,company:d.company||'',
+    rname:d.rname||d.name||'',remail:d.remail||d.email||'',regs:_regs};
+  if(d.type==='Table')_payload.tables=d.tables||1;
+  const _h=btoa(unescape(encodeURIComponent(JSON.stringify(_payload))));
+  soaBtn.href=SOA_URL+(SOA_URL.includes('?')?'&':'?')+'h='+encodeURIComponent(_h);
   const first=indiv?payBtn:soaBtn, second=indiv?soaBtn:payBtn;
   first.parentElement.insertBefore(first,second);
   first.className='btn'; second.className='btn ghost';
