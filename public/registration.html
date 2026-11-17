@@ -388,6 +388,8 @@
           <div class="conf-badge" style="margin-bottom:16px"><div class="tick"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><h3 style="font-size:15px">Statement of Account ready</h3><p id="soa_done_s"></p></div></div>
           <div id="soa_doc"></div>
           <a id="soa_pay" class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:16px" href="#" target="_blank" rel="noopener">Proceed to payment</a>
+          <button class="btn ghost" style="margin-top:9px" onclick="downloadSoa()">
+            <span style="display:inline-flex;align-items:center;gap:7px;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download SOA (PDF)</span></button>
           <button class="btn ghost" style="margin-top:9px" onclick="editSoa()">Edit billing details</button>
           <p class="next-note">On the live site this SOA is emailed as a PDF and recorded in HubSpot; paying marks your Event Payment Status and raises the sales-invoice request.</p>
         </div>
@@ -401,6 +403,8 @@
   Sprout Solutions Phil. Inc · events@sprout.ph — Registrations are submitted to the SaaScon PH 2027 form in HubSpot.
 </footer>
 
+<!-- jsPDF: client-side PDF for the downloadable Statement of Account -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <script>
 /* Link to the SOA console (the interface this one precedes). */
 /* HubSpot form registrations are submitted to. */
@@ -565,12 +569,17 @@ const SOACFG={
   VAT:0.12,CUR:'PHP',termsDays:30,
   today:new Date().toISOString().slice(0,10),
   cutoff:'2027-06-30',
-  seller:{name:'Sprout Solutions Phil. Inc',lines:['Rockwell Business Center North Tower 9F','Sheridan St cor United St','Mandaluyong, NCR 1550'],phone:'+63 9176275518',email:'events@sprout.ph'},
+  seller:{name:'Sprout Solutions Phil. Inc',lines:['Rockwell Business Center Building North Tower 9th Floor','Sheridan St, corner United St.','Mandaluyong, NCR 1550'],phone:'+63 9176275518',email:'events@sprout.ph'},
   shopify:{domain:'5zhckw-pf.myshopify.com',variant:'53486544126266',
     individual:'https://5zhckw-pf.myshopify.com/products/saascon-ph-2027?variant=53486544126266',
     tablePublic:'https://5zhckw-pf.myshopify.com/pages/table-registration-regular',
     tableClient:'https://5zhckw-pf.myshopify.com/pages/table-registration-client'},
-  banks:[{bank:'Union Bank of the Philippines',no:'001950000555'},{bank:'Robinsons Bank',no:'169230000079'}],
+  banks:[
+    {bank:'Union Bank of the Philippines',accountName:'Sprout Solutions Phil., Inc.',accountNumber:'001950000555',accountType:'Checking',currency:'Php'},
+    {bank:'Robinsons Bank',accountName:'Sprout Solutions Phil., Inc.',accountNumber:'169230000079',accountType:'Checking',currency:'Php'}],
+  paymentNotes:[
+    'Kindly indicate Company Name and/or Invoice number on the remarks field (ex.: Sprout Solutions - INV00012345).',
+    'Once payment has been made, kindly send the proof of payment at your earliest convenience. This will allow us to validate your payment and post it to our system promptly.'],
   rates:{
     individual:{label:'Group Registration',perSeat:true,seats:1,regular:5600,earlyBird:4480},
     tablePublic:{label:'Table Registration (Non-Sprout Client)',perSeat:false,seats:10,regular:56000,earlyBird:44800},
@@ -626,9 +635,10 @@ function soaDoc(r){
     <div class="doc-pay"><h4>Kindly settle the payment through the following</h4>
       <div class="paylink primary"><div><div class="lbl">${esc(r.checkout.primary.label)}</div><div class="url">${esc(r.checkout.primary.url)}</div></div><span class="star">FOR YOU ★</span></div>
       ${r.checkout.options.map(o=>`<div class="paylink"><div><div class="lbl">${esc(o.label)}</div><div class="url">${esc(o.url)}</div></div></div>`).join('')}
-      <div class="banks">${SOACFG.banks.map(b=>`<div class="bank"><b>${esc(b.bank)}</b>Acct name: Sprout Solutions Phil., Inc.<br>Acct #: <span class="num">${b.no}</span> · Checking · Php</div>`).join('')}</div></div></div>`;
+      <div class="banks">${SOACFG.banks.map(b=>`<div class="bank"><b>${esc(b.bank)}</b>Acct name: ${esc(b.accountName)}<br>Acct #: <span class="num">${esc(b.accountNumber)}</span> · ${esc(b.accountType)} · ${esc(b.currency)}</div>`).join('')}</div></div></div>`;
 }
 let SOA_SEQ=900;
+let LAST_SOA=null; /* the most recently generated SOA, for the PDF download */
 /* Map the confirmed booking to SOA engine inputs (type, quantity, registrants). */
 function soaInputs(){
   const d=CURRENT||{};
@@ -683,10 +693,12 @@ function generateSoa(){
   let f,p;try{f=readSoa();p=soaCalc(f);}catch(e){return;}
   SOA_SEQ+=1;
   const r={trackingNumber:String(SOA_SEQ),invoiceNumber:'INV-'+String(1782378000000+SOA_SEQ),
-    date:SOACFG.today,dueDate:addDays(SOACFG.today,SOACFG.termsDays),
+    date:SOACFG.today,dueDate:addDays(SOACFG.today,SOACFG.termsDays),terms:'Net '+SOACFG.termsDays,
     company:f.company,tin:f.tin,address:f.address,rname:f.rname,remail:f.remail,
     customer:f.customer,type:f.type,quantity:p.quantity,registrants:f.registrants,
-    pricing:p,checkout:soaCheckout(p,f.customer),status:'issued'};
+    pricing:p,checkout:soaCheckout(p,f.customer),status:'issued',
+    seller:SOACFG.seller,event:{name:SOACFG.event},banks:SOACFG.banks,paymentNotes:SOACFG.paymentNotes};
+  LAST_SOA=r;
   document.getElementById('soa_doc').innerHTML=soaDoc(r);
   document.getElementById('soa_done_s').textContent=`Billed to ${f.company||'your company'} · a copy is emailed to ${f.remail||'your inbox'}`;
   const pay=document.getElementById('soa_pay');
@@ -697,6 +709,81 @@ function generateSoa(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function editSoa(){document.getElementById('soa_result').hidden=true;document.getElementById('soa_form').hidden=false;window.scrollTo({top:0,behavior:'smooth'});}
+
+/* Download the SOA as a PDF that replicates the original Sprout SOA template
+   (the same layout rendered server-side by src/services/pdf.js). Generated in
+   the browser with jsPDF so the download works on the live site and in the
+   artifact preview alike; falls back to the print dialog if jsPDF is blocked. */
+function downloadSoa(){
+  const r=LAST_SOA; if(!r)return;
+  const J=(window.jspdf||{}).jsPDF;
+  if(!J){printSoaFallback(r);return;}
+  const p=r.pricing,cur=SOACFG.CUR;
+  const doc=new J({unit:'pt',format:'a4'});
+  const M=40,pageW=doc.internal.pageSize.getWidth(),rightX=pageW-M,cW=pageW-2*M,left=M;
+  const BRAND=[46,125,50],GREY=[102,102,102],LIGHT=[238,238,238],BLUE=[6,69,173];
+  const T=(s,x,yy,o)=>doc.text(String(s),x,yy,o);
+  let y=M+4;
+  // seller header
+  doc.setTextColor(...BRAND).setFont('helvetica','bold').setFontSize(16);T(r.seller.name,left,y);y+=18;
+  doc.setTextColor(...GREY).setFont('helvetica','normal').setFontSize(9);
+  r.seller.lines.forEach(l=>{T(l,left,y);y+=12;});T(r.seller.phone,left,y);y+=12;T(r.seller.email,left,y);
+  // title
+  doc.setTextColor(0,0,0).setFont('helvetica','bold').setFontSize(20);T('STATEMENT OF ACCOUNT',rightX,M+22,{align:'right'});
+  // bill-to + meta
+  let by=y+22;
+  doc.setFont('helvetica','bold').setFontSize(10).setTextColor(0,0,0);T('BILL TO:',left,by);
+  doc.setFont('helvetica','normal').setTextColor(...GREY);let cy=by+14;const bW=cW*0.55;
+  [r.company||'—',r.address||'',r.tin?('TIN: '+r.tin):''].filter(Boolean).forEach(l=>{doc.splitTextToSize(l,bW).forEach(w=>{T(w,left,cy);cy+=12;});});
+  const mX=left+cW*0.6,mLW=80;let my=by;
+  const mRow=(k,v)=>{doc.setFont('helvetica','bold').setTextColor(0,0,0).setFontSize(9);T(k,mX,my);doc.setFont('helvetica','normal').setTextColor(...GREY);T(String(v),mX+mLW,my);my+=14;};
+  mRow('TRACKING#:',r.trackingNumber);mRow('INVOICE:',r.invoiceNumber);mRow('DATE:',r.date);mRow('TERMS:',r.terms);mRow('DUE DATE:',r.dueDate);
+  y=Math.max(cy,my)+10;
+  // line-item table
+  const cols=[{l:'DATE',w:.1,a:'left'},{l:'EVENT / REGISTRANTS',w:.46,a:'left'},{l:'QTY',w:.1,a:'right'},{l:'PHP',w:.19,a:'right'},{l:'TOTAL',w:.15,a:'right'}];
+  const cX=[];let acc=left;cols.forEach(c=>{cX.push(acc);acc+=cW*c.w;});
+  doc.setFillColor(...BRAND).rect(left,y,cW,18,'F');doc.setTextColor(255,255,255).setFont('helvetica','bold').setFontSize(9);
+  cols.forEach((c,i)=>{const w=cW*c.w,tx=c.a==='right'?cX[i]+w-4:cX[i]+4;T(c.l,tx,y+12,{align:c.a});});
+  y+=18;
+  const unitLabel=`${peso(p.unit)} per ${p.perSeat?'registrant':'table'} (VAT Inclusive)${p.earlyBird?' · early bird':''}`;
+  const regText=r.registrants.length?r.registrants.map(x=>`${x.name}${x.title?' — '+x.title:''}   ${x.email}`).join('\n'):(p.perSeat?'':`${p.quantity} table(s) · ${p.seats} seats`);
+  const evBlock=[r.event.name,regText,unitLabel].filter(Boolean).join('\n');
+  const rowY=y+10;doc.setTextColor(0,0,0).setFont('helvetica','normal').setFontSize(9);
+  T(r.date,cX[0]+4,rowY);
+  const evLines=doc.splitTextToSize(evBlock,cW*cols[1].w-8);doc.text(evLines,cX[1]+4,rowY);
+  T(String(p.quantity),cX[2]+cW*cols[2].w-4,rowY,{align:'right'});
+  T(`${cur} ${money(p.unit)}`,cX[3]+cW*cols[3].w-4,rowY,{align:'right'});
+  T(`${cur} ${money(p.grossBefore)}`,cX[4]+cW*cols[4].w-4,rowY,{align:'right'});
+  y=rowY+Math.max(evLines.length*11,14)+8;doc.setDrawColor(...LIGHT).line(left,y,rightX,y);y+=16;
+  // totals
+  const tLW=cW*0.28,tX=left+cW*0.55;
+  const tLine=(lb,v,o={})=>{doc.setFont('helvetica',o.bold?'bold':'normal').setFontSize(o.bold?11:10).setTextColor(...(o.color||[0,0,0]));T(lb,tX+tLW-4,y,{align:'right'});T(v,rightX-4,y,{align:'right'});y+=16;};
+  if(p.discount)tLine(`Discount (${p.discount.code}):`,`- ${cur} ${money(p.discountAmount)}`,{color:GREY});
+  tLine('SUBTOTAL:',`${cur} ${money(p.subtotal)}`);
+  tLine(p.vatExempt?'VAT (VAT-Exempt):':'TAX (12%):',`${cur} ${money(p.vat)}`);
+  tLine('TOTAL:',`${cur} ${money(p.total)}`,{bold:true});
+  tLine('BALANCE DUE:',`${cur} ${money(p.total)}`,{bold:true,color:BRAND});
+  y+=8;
+  // payment section
+  doc.setFont('helvetica','bold').setFontSize(11).setTextColor(0,0,0);T('Kindly settle the payment through the following:',left,y);y+=16;
+  doc.setFont('helvetica','bold').setFontSize(9).setTextColor(...BRAND);T(`${r.checkout.primary.label} (recommended for you):`,left,y);y+=12;
+  doc.setFont('helvetica','normal').setTextColor(...BLUE);
+  doc.splitTextToSize(r.checkout.primary.url,cW).forEach(w=>{doc.textWithLink(w,left,y,{url:r.checkout.primary.url});y+=12;});
+  y+=2;doc.setFontSize(9);
+  r.checkout.options.forEach(o=>{doc.setFont('helvetica','bold').setTextColor(0,0,0);T(`${o.label}: `,left,y);const lw=doc.getTextWidth(`${o.label}: `);doc.setFont('helvetica','normal').setTextColor(...BLUE);doc.textWithLink(o.url,left+lw,y,{url:o.url});y+=13;});
+  y+=6;doc.setFont('helvetica','normal').setFontSize(9).setTextColor(0,0,0);T('Otherwise, you may also settle via bank deposit:',left,y);y+=14;
+  r.banks.forEach(b=>{doc.setFont('helvetica','bold').setTextColor(0,0,0);T(b.bank,left,y);y+=12;doc.setFont('helvetica','normal').setTextColor(...GREY);T(`Account name: ${b.accountName}   |   Account #: ${b.accountNumber}   |   ${b.accountType} (${b.currency})`,left,y);y+=14;});
+  y+=4;doc.setTextColor(...GREY).setFontSize(8);
+  r.paymentNotes.forEach(n=>{const nl=doc.splitTextToSize(n,cW);doc.text(nl,left,y);y+=nl.length*10+4;});
+  doc.save(`SOA-${r.invoiceNumber}.pdf`);
+}
+/* If jsPDF can't load, open a clean print view of the SOA document. */
+function printSoaFallback(r){
+  const w=window.open('','_blank');if(!w){window.print();return;}
+  const css=[...document.querySelectorAll('style')].map(s=>s.innerHTML).join('\n');
+  w.document.write(`<!doctype html><html><head><title>SOA-${r.invoiceNumber}</title><style>${css} body{background:#fff;padding:24px}</style></head><body>${soaDoc(r)}<script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.close();
+}
 
 function showConfirmation(d){
   const sum=document.getElementById('done_summary');
