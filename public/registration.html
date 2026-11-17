@@ -149,6 +149,48 @@
   .hsnote .hdot{width:22px;height:22px;border-radius:6px;background:#FF7A59;color:#fff;display:grid;place-items:center;font-weight:800;font-size:11px;flex:none}
   .hsnote b{color:var(--ink)}
   .hsnote .mono{font-family:var(--mono);font-size:11px;color:var(--ink)}
+  /* chips + inline Statement of Account */
+  .chip{font-size:11px;font-weight:650;padding:3px 9px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted)}
+  .chip.g{background:var(--accent-soft);color:var(--accent-strong);border-color:transparent}
+  .chip.a{background:var(--pending-soft);color:var(--pending);border-color:transparent}
+  .chiprow{display:flex;flex-wrap:wrap;gap:6px}
+  .num{font-family:var(--mono)}
+  .est{border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:14px 16px}
+  .est .est-line{display:flex;justify-content:space-between;gap:16px;font-size:12.5px;padding:3px 0}
+  .est .est-line.tot{font-weight:750;font-size:14px;border-top:1px solid var(--border);margin-top:6px;padding-top:8px}
+  .est .est-line.tot .num{color:var(--accent-strong)}
+  .soa-sum{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px}
+  .soa-sum .sh{padding:12px 15px;background:var(--surface-2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+  .doc{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;font-size:12px}
+  .doc-top{display:flex;justify-content:space-between;gap:14px;padding:16px 18px;background:linear-gradient(180deg,var(--accent-soft),transparent)}
+  .doc-seller b{font-size:13px;color:var(--accent-strong)}
+  .doc-seller p{margin:2px 0 0;color:var(--muted);font-size:10.5px;line-height:1.45}
+  .doc-title h3{font-size:16px;letter-spacing:.02em;text-align:right}
+  .doc-mid{display:grid;grid-template-columns:1fr auto;gap:14px;padding:14px 18px;border-top:1px solid var(--border)}
+  .bill b{font-size:11px;color:var(--muted);letter-spacing:.05em}.bill p{margin:3px 0 8px;line-height:1.5}
+  .meta{font-size:11px;min-width:190px}
+  .meta div{display:flex;justify-content:space-between;gap:16px;padding:2px 0}.meta .k{color:var(--muted)}
+  table.li{width:100%;border-collapse:collapse;font-size:11.5px}
+  table.li th{background:var(--surface-2);text-align:left;padding:7px 10px;font-size:10px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+  table.li th.r,table.li td.r{text-align:right}
+  table.li td{padding:9px 10px;border-top:1px solid var(--border);vertical-align:top}
+  .li .ev b{display:block}.li .ev .who{color:var(--muted);font-size:10.5px;margin-top:2px;line-height:1.5}
+  .li .ev .rate{color:var(--faint);font-size:10.5px;margin-top:3px}
+  .doc-tot{padding:12px 18px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;border-top:1px solid var(--border)}
+  .doc-tot .line{display:flex;justify-content:space-between;gap:26px;min-width:220px;font-size:11.5px;padding:2px 0}
+  .doc-tot .line.total{font-weight:750;font-size:13px;border-top:1px solid var(--border);margin-top:4px;padding-top:6px}
+  .doc-tot .line.total .num{color:var(--accent-strong)}
+  .doc-pay{padding:14px 18px;border-top:1px solid var(--border);background:var(--surface-2)}
+  .doc-pay h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 7px}
+  .paylink{display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:7px}
+  .paylink.primary{border-color:color-mix(in srgb,var(--accent) 40%,transparent);background:var(--accent-soft)}
+  .paylink .lbl{font-weight:650;font-size:11.5px}
+  .paylink .url{color:var(--muted);font-size:10px;font-family:var(--mono);word-break:break-all}
+  .paylink .star{margin-left:auto;font-size:10px;color:var(--accent-strong);font-weight:700;flex:none}
+  .banks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  @media(max-width:560px){.banks{grid-template-columns:1fr}.doc-mid{grid-template-columns:1fr}}
+  .bank{font-size:10.5px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px}
+  .bank b{color:var(--ink);display:block;font-size:11px;margin-bottom:2px}
   footer{padding:24px 0 40px;text-align:center;color:var(--faint);font-size:11.5px;line-height:1.6}
 </style>
 </head>
@@ -312,9 +354,45 @@
     <div id="done_summary"></div>
     <div class="next-actions">
       <a id="pay_cta" class="btn" style="display:block;text-align:center;text-decoration:none" href="#" target="_blank" rel="noopener">Proceed to payment</a>
-      <a id="soa_cta" class="btn ghost" style="display:block;text-align:center;text-decoration:none" href="#" target="_blank" rel="noopener">Request a Statement of Account</a>
+      <button id="soa_cta" class="btn ghost" style="display:block;text-align:center" onclick="openSoa()">Request a Statement of Account</button>
     </div>
     <p class="next-note" id="next_note"></p>
+    <button class="btn ghost" style="margin-top:16px" onclick="resetAll()">New registration</button>
+  </section>
+
+  <!-- INLINE STATEMENT OF ACCOUNT -->
+  <section id="soa" class="conf" hidden>
+    <button class="backlink" onclick="go('done')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back to confirmation</button>
+    <div class="panel" style="padding:0;overflow:hidden">
+      <div class="panel-h" style="padding:16px 18px;border-bottom:1px solid var(--border)"><h2>Statement of Account</h2></div>
+      <div class="panel-b" style="padding:18px">
+        <!-- carried over from the registration automatically -->
+        <div id="soa_carry" class="soa-sum"></div>
+        <!-- billing details -->
+        <div id="soa_form">
+          <div class="field"><label>Registered company name</label><input type="text" id="soa_company" placeholder="Company, Inc."></div>
+          <div class="grid2" style="margin-top:13px">
+            <div class="field"><label>TIN</label><input type="text" id="soa_tin" placeholder="000-000-000-000"></div>
+            <div class="field"><label>Discount code <span style="color:var(--faint);font-weight:400">— optional</span></label><input type="text" id="soa_discount" placeholder="e.g. SPROUT10"></div>
+          </div>
+          <div class="field" style="margin-top:13px"><label>Billing address</label><input type="text" id="soa_address" placeholder="Building, Street, City"></div>
+          <label class="consent" style="margin-top:14px;align-items:center;display:flex;gap:9px;cursor:pointer"><input type="checkbox" id="soa_vat" style="width:16px;height:16px;accent-color:var(--accent);flex:none"><span style="font-size:12.5px;color:var(--ink)"><b>VAT-exempt entity</b> — strips the 12%, you pay the net amount</span></label>
+          <div id="soa_est" class="est" style="margin-top:16px"></div>
+          <p id="soa_err" class="note errbox" hidden></p>
+          <button class="btn" id="soa_gen" style="margin-top:16px" onclick="generateSoa()">Generate Statement of Account</button>
+          <p class="next-note">Rates, event dates and discount codes are placeholders — they mirror the admin SOA console and are set in <b>config/pricing.js</b> on the live site.</p>
+        </div>
+        <!-- generated document -->
+        <div id="soa_result" hidden>
+          <div class="conf-badge" style="margin-bottom:16px"><div class="tick"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><h3 style="font-size:15px">Statement of Account ready</h3><p id="soa_done_s"></p></div></div>
+          <div id="soa_doc"></div>
+          <a id="soa_pay" class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:16px" href="#" target="_blank" rel="noopener">Proceed to payment</a>
+          <button class="btn ghost" style="margin-top:9px" onclick="editSoa()">Edit billing details</button>
+          <p class="next-note">On the live site this SOA is emailed as a PDF and recorded in HubSpot; paying marks your Event Payment Status and raises the sales-invoice request.</p>
+        </div>
+      </div>
+    </div>
     <button class="btn ghost" style="margin-top:16px" onclick="resetAll()">New registration</button>
   </section>
 </main>
@@ -349,9 +427,10 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const isEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const state={i_rel:'nonclient',g_rel:'nonclient',t_rel:'nonclient'};
 const SEATS_PER_TABLE=10;
+let CURRENT=null; /* the booking just confirmed, so the inline SOA can pre-fill */
 
 function go(id){
-  ['choose','individual','group','table','done'].forEach(s=>document.getElementById(s).hidden=(s!==id));
+  ['choose','individual','group','table','done','soa'].forEach(s=>document.getElementById(s).hidden=(s!==id));
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -476,6 +555,149 @@ function formFields(c){
 function fieldsPreview(c){
   return formFields(c).map(([k,v])=>`${k}="${esc(v)}"`).join(', ');
 }
+/* ======================= Inline Statement of Account =======================
+   Pricing + SOA rendering ported from the admin SOA console so the whole
+   registration → SOA → pay journey happens on one page. Rates, event dates and
+   discount codes are PLACEHOLDERS that mirror the console (config/pricing.js on
+   the live site). */
+const SOACFG={
+  event:'SaaScon PH 2027',
+  VAT:0.12,CUR:'PHP',termsDays:30,
+  today:new Date().toISOString().slice(0,10),
+  cutoff:'2027-06-30',
+  seller:{name:'Sprout Solutions Phil. Inc',lines:['Rockwell Business Center North Tower 9F','Sheridan St cor United St','Mandaluyong, NCR 1550'],phone:'+63 9176275518',email:'events@sprout.ph'},
+  shopify:{domain:'5zhckw-pf.myshopify.com',variant:'53486544126266',
+    individual:'https://5zhckw-pf.myshopify.com/products/saascon-ph-2027?variant=53486544126266',
+    tablePublic:'https://5zhckw-pf.myshopify.com/pages/table-registration-regular',
+    tableClient:'https://5zhckw-pf.myshopify.com/pages/table-registration-client'},
+  banks:[{bank:'Union Bank of the Philippines',no:'001950000555'},{bank:'Robinsons Bank',no:'169230000079'}],
+  rates:{
+    individual:{label:'Group Registration',perSeat:true,seats:1,regular:5600,earlyBird:4480},
+    tablePublic:{label:'Table Registration (Non-Sprout Client)',perSeat:false,seats:10,regular:56000,earlyBird:44800},
+    tableClient:{label:'Table Registration (Sprout Client)',perSeat:false,seats:10,regular:50000,earlyBird:40000}},
+  discounts:{
+    SPROUT10:{type:'percent',value:10,label:'10% partner discount',stack:true},
+    HR500:{type:'fixed',value:500,label:'PHP 500 off',stack:true},
+    EARLYVIP:{type:'percent',value:15,label:'15% VIP discount',stack:false}}
+};
+const round2=n=>Math.round((n+Number.EPSILON)*100)/100;
+const money=n=>Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const peso=n=>SOACFG.CUR+' '+money(n);
+function addDays(ymd,d){const[y,m,day]=ymd.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,day));dt.setUTCDate(dt.getUTCDate()+d);return dt.toISOString().slice(0,10);}
+function soaCalc({type,quantity,vatExempt,discountCode,earlyBird}){
+  const rate=SOACFG.rates[type],qty=Number(quantity);
+  if(!Number.isFinite(qty)||qty<=0)throw new Error('Add at least one registrant (quantity must be greater than 0).');
+  const unit=earlyBird?rate.earlyBird:rate.regular;
+  const grossBefore=round2(unit*qty);
+  let discount=null,discountAmount=0;
+  if(discountCode){const code=String(discountCode).trim().toUpperCase(),def=SOACFG.discounts[code];
+    if(!def)throw new Error('Invalid discount code: '+code);
+    if(earlyBird&&def.stack===false)throw new Error(code+' cannot be combined with the early-bird rate.');
+    discountAmount=def.type==='percent'?round2(grossBefore*def.value/100):round2(Math.min(def.value,grossBefore));
+    discount={code,...def,amount:discountAmount};}
+  const gross=round2(grossBefore-discountAmount);
+  const subtotal=round2(gross/(1+SOACFG.VAT));
+  const vat=vatExempt?0:round2(gross-subtotal);
+  const total=vatExempt?subtotal:round2(subtotal+vat);
+  const seats=rate.perSeat?qty:qty*rate.seats;
+  return{type,label:rate.label,perSeat:rate.perSeat,quantity:qty,seats,earlyBird,unit,vatExempt,grossBefore,discount,discountAmount,subtotal,vat,total};
+}
+function soaCheckout(p,customerType){
+  const dom=SOACFG.shopify.domain,isClient=customerType==='client';let primary;
+  if(p.type==='individual'){let url=`https://${dom}/cart/${SOACFG.shopify.variant}:${p.seats}`;if(p.discount)url+=`?discount=${encodeURIComponent(p.discount.code)}`;primary={label:`Individual Registration (×${p.seats})`,url};}
+  else{const wc=p.type==='tableClient'||isClient;primary=wc?{label:'Table Registration (Client)',url:SOACFG.shopify.tableClient}:{label:'Table Registration (General Public)',url:SOACFG.shopify.tablePublic};}
+  return{primary,options:[{label:'Individual Registration',url:SOACFG.shopify.individual},{label:'Table Registration (General Public)',url:SOACFG.shopify.tablePublic},{label:'Table Registration (Client)',url:SOACFG.shopify.tableClient}]};
+}
+function soaDoc(r){
+  const p=r.pricing;
+  const who=r.registrants.length?r.registrants.map(x=>`${esc(x.name)}${x.title?` <span style="opacity:.85">— ${esc(x.title)}</span>`:''} <span style="opacity:.7">${esc(x.email)}</span>`).join(' · '):(p.perSeat?'—':`${p.quantity} table(s) · ${p.seats} seats`);
+  return `<div class="doc">
+    <div class="doc-top"><div class="doc-seller"><b>${esc(SOACFG.seller.name)}</b><p>${SOACFG.seller.lines.map(esc).join('<br>')}<br>${esc(SOACFG.seller.phone)} · ${esc(SOACFG.seller.email)}</p></div>
+      <div class="doc-title"><h3>STATEMENT<br>OF ACCOUNT</h3></div></div>
+    <div class="doc-mid"><div class="bill"><b>BILL TO</b><p><strong>${esc(r.company||'—')}</strong><br>${esc(r.address||'')}${r.tin?'<br>TIN: '+esc(r.tin):''}</p>
+      <div class="chiprow"><span class="chip ${r.customer==='client'?'g':''}">${r.customer==='client'?'Sprout client':'Non-Sprout Client'}</span>${p.earlyBird?'<span class="chip g">Early bird</span>':''}${p.vatExempt?'<span class="chip a">VAT-exempt</span>':''}${p.discount?`<span class="chip a">${esc(p.discount.code)}</span>`:''}</div></div>
+      <div class="meta"><div><span class="k">TRACKING#</span><span class="num">${r.trackingNumber}</span></div><div><span class="k">INVOICE</span><span class="num">${r.invoiceNumber}</span></div><div><span class="k">DATE</span><span class="num">${r.date}</span></div><div><span class="k">TERMS</span><span>Net ${SOACFG.termsDays}</span></div><div><span class="k">DUE DATE</span><span class="num">${r.dueDate}</span></div></div></div>
+    <table class="li"><thead><tr><th>Date</th><th>Event / Registrants</th><th class="r">Qty</th><th class="r">PHP</th><th class="r">Total</th></tr></thead>
+      <tbody><tr><td class="num">${r.date}</td><td class="ev"><b>${esc(SOACFG.event)}</b><div class="who">${who}</div><div class="rate">${peso(p.unit)} per ${p.perSeat?'registrant':'table'} (VAT Inclusive)${p.earlyBird?' · early bird':''}</div></td><td class="r num">${p.quantity}</td><td class="r num">${money(p.unit)}</td><td class="r num">${money(p.grossBefore)}</td></tr></tbody></table>
+    <div class="doc-tot">${p.discount?`<div class="line"><span>Discount (${esc(p.discount.code)})</span><span class="num">- ${money(p.discountAmount)}</span></div>`:''}
+      <div class="line"><span>Subtotal</span><span class="num">${money(p.subtotal)}</span></div>
+      <div class="line"><span>${p.vatExempt?'VAT (exempt)':'Tax (12%)'}</span><span class="num">${money(p.vat)}</span></div>
+      <div class="line total"><span>Balance due</span><span class="num">${peso(p.total)}</span></div></div>
+    <div class="doc-pay"><h4>Kindly settle the payment through the following</h4>
+      <div class="paylink primary"><div><div class="lbl">${esc(r.checkout.primary.label)}</div><div class="url">${esc(r.checkout.primary.url)}</div></div><span class="star">FOR YOU ★</span></div>
+      ${r.checkout.options.map(o=>`<div class="paylink"><div><div class="lbl">${esc(o.label)}</div><div class="url">${esc(o.url)}</div></div></div>`).join('')}
+      <div class="banks">${SOACFG.banks.map(b=>`<div class="bank"><b>${esc(b.bank)}</b>Acct name: Sprout Solutions Phil., Inc.<br>Acct #: <span class="num">${b.no}</span> · Checking · Php</div>`).join('')}</div></div></div>`;
+}
+let SOA_SEQ=900;
+/* Map the confirmed booking to SOA engine inputs (type, quantity, registrants). */
+function soaInputs(){
+  const d=CURRENT||{};
+  const customer=d.rel==='Sprout Client'?'client':'prospect';
+  let type='individual',quantity=1,registrants=[];
+  if(d.type==='Table'){type=customer==='client'?'tableClient':'tablePublic';quantity=Math.max(1,Number(d.tables)||1);registrants=d.registrants||[];}
+  else if(d.type==='Group'){type='individual';registrants=d.registrants||[];quantity=registrants.length;}
+  else{type='individual';registrants=[{name:d.name||'',title:d.title||'',email:d.email||''}];quantity=1;}
+  return{customer,type,quantity,registrants,
+    company:d.company||'',tin:d.tin||'',address:d.address||'',
+    rname:d.rname||d.name||'',remail:d.remail||d.email||''};
+}
+function openSoa(){
+  const f=soaInputs();
+  document.getElementById('soa_company').value=f.company;
+  document.getElementById('soa_tin').value=f.tin;
+  document.getElementById('soa_address').value=f.address;
+  document.getElementById('soa_discount').value='';
+  document.getElementById('soa_vat').checked=false;
+  const typeLabel=CURRENT.type==='Table'
+    ? `Table Registration · ${esc(CURRENT.rel)} · ${f.quantity} table${f.quantity===1?'':'s'} (${f.quantity*SEATS_PER_TABLE} seats)`
+    : `${esc(CURRENT.type)} Registration · ${esc(CURRENT.rel)} · ${(f.registrants.length||1)} registrant${(f.registrants.length||1)===1?'':'s'}`;
+  const list=f.registrants.length?f.registrants:[{name:f.rname,title:'',email:f.remail}];
+  const rows=list.map(r=>`<div class="att"><div class="av">${esc((r.name||'?').slice(0,1).toUpperCase())}</div><div><div class="nm">${esc(r.name||'—')}${r.title?` <span class="mt">· ${esc(r.title)}</span>`:''}</div><div class="mt">${esc(r.email||'')}</div></div></div>`).join('');
+  document.getElementById('soa_carry').innerHTML=`<div class="sh">From your registration${f.company?` · ${esc(f.company)}`:''}</div><div class="kv"><span class="k">Registration</span><span class="v">${typeLabel}</span></div><div class="kv"><span class="k">Contact</span><span class="v">${esc(f.rname)} · ${esc(f.remail)}</span></div>${rows}`;
+  document.getElementById('soa_result').hidden=true;
+  document.getElementById('soa_form').hidden=false;
+  liveEstimateSoa();
+  go('soa');
+}
+function readSoa(){
+  const f=soaInputs();
+  f.company=document.getElementById('soa_company').value.trim()||f.company;
+  f.tin=document.getElementById('soa_tin').value.trim();
+  f.address=document.getElementById('soa_address').value.trim();
+  f.discountCode=document.getElementById('soa_discount').value.trim()||null;
+  f.vatExempt=document.getElementById('soa_vat').checked;
+  f.earlyBird=SOACFG.today<=SOACFG.cutoff;
+  return f;
+}
+function liveEstimateSoa(){
+  const f=readSoa(),box=document.getElementById('soa_est'),err=document.getElementById('soa_err'),gen=document.getElementById('soa_gen');
+  let p;try{p=soaCalc(f);err.hidden=true;gen.disabled=false;}
+  catch(e){err.textContent=e.message;err.hidden=false;gen.disabled=true;box.innerHTML='<p style="color:var(--faint);font-size:12.5px;text-align:center;padding:8px 0">Add registrant details on the registration to see your total.</p>';return;}
+  box.innerHTML=`<div class="chiprow" style="margin-bottom:10px"><span class="chip g">${esc(p.label)}</span><span class="chip">Qty ${p.quantity} · ${p.seats} seat${p.seats===1?'':'s'}</span>${p.earlyBird?'<span class="chip g">Early bird</span>':''}</div>`
+    +(p.discount?`<div class="est-line"><span>Discount (${esc(p.discount.code)})</span><span class="num">- ${money(p.discountAmount)}</span></div>`:'')
+    +`<div class="est-line"><span>Subtotal</span><span class="num">${money(p.subtotal)}</span></div>`
+    +`<div class="est-line"><span>${p.vatExempt?'VAT (exempt)':'Tax (12%)'}</span><span class="num">${money(p.vat)}</span></div>`
+    +`<div class="est-line tot"><span>Balance due</span><span class="num">${peso(p.total)}</span></div>`;
+}
+function generateSoa(){
+  let f,p;try{f=readSoa();p=soaCalc(f);}catch(e){return;}
+  SOA_SEQ+=1;
+  const r={trackingNumber:String(SOA_SEQ),invoiceNumber:'INV-'+String(1782378000000+SOA_SEQ),
+    date:SOACFG.today,dueDate:addDays(SOACFG.today,SOACFG.termsDays),
+    company:f.company,tin:f.tin,address:f.address,rname:f.rname,remail:f.remail,
+    customer:f.customer,type:f.type,quantity:p.quantity,registrants:f.registrants,
+    pricing:p,checkout:soaCheckout(p,f.customer),status:'issued'};
+  document.getElementById('soa_doc').innerHTML=soaDoc(r);
+  document.getElementById('soa_done_s').textContent=`Billed to ${f.company||'your company'} · a copy is emailed to ${f.remail||'your inbox'}`;
+  const pay=document.getElementById('soa_pay');
+  pay.href=r.checkout.primary.url||PAYMENT_URL;
+  pay.textContent=`Proceed to payment — ${peso(p.total)}`;
+  document.getElementById('soa_form').hidden=true;
+  document.getElementById('soa_result').hidden=false;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function editSoa(){document.getElementById('soa_result').hidden=true;document.getElementById('soa_form').hidden=false;window.scrollTo({top:0,behavior:'smooth'});}
+
 function showConfirmation(d){
   const sum=document.getElementById('done_summary');
   if(d.type==='Individual'){
@@ -509,26 +731,13 @@ function showConfirmation(d){
       ${d.registrants.map(r=>`<div class="att"><div class="av">${esc((r.name||'?').slice(0,1).toUpperCase())}</div><div><div class="nm">${esc(r.name||'—')}${r.title?` <span class="mt">· ${esc(r.title)}</span>`:''}</div><div class="mt">${esc(r.email)}</div></div></div>`).join('')}
     </div>`;
   }
-  // Next step: pay now, or request a Statement of Account.
+  // Keep the booking so the inline Statement of Account pre-fills from it.
+  CURRENT=d;
+  // Next step: pay now, or generate a Statement of Account inline (same page).
   const indiv=d.type==='Individual';
   const payBtn=document.getElementById('pay_cta');
   const soaBtn=document.getElementById('soa_cta');
   payBtn.href=PAYMENT_URL;
-  // Hand the whole booking to the SOA console so its Registration Type, the
-  // registrant list and the quantity all reflect automatically. Packed as
-  // base64 JSON in ?h= (Group→individual, Table→tablePublic/tableClient).
-  const _rel=d.rel==='Sprout Client'?'client':'prospect';
-  let _rt='';
-  if(d.type==='Group')_rt='individual';
-  else if(d.type==='Table')_rt=(_rel==='client'?'tableClient':'tablePublic');
-  const _regs=(d.type==='Individual'
-    ? [{n:d.name||'',t:d.title||'',e:d.email||''}]
-    : (d.registrants||[]).map(r=>({n:r.name||'',t:r.title||'',e:r.email||''})));
-  const _payload={rt:_rt,rel:_rel,company:d.company||'',
-    rname:d.rname||d.name||'',remail:d.remail||d.email||'',regs:_regs};
-  if(d.type==='Table')_payload.tables=d.tables||1;
-  const _h=btoa(unescape(encodeURIComponent(JSON.stringify(_payload))));
-  soaBtn.href=SOA_URL+(SOA_URL.includes('?')?'&':'?')+'h='+encodeURIComponent(_h);
   const first=indiv?payBtn:soaBtn, second=indiv?soaBtn:payBtn;
   first.parentElement.insertBefore(first,second);
   first.className='btn'; second.className='btn ghost';
@@ -544,6 +753,11 @@ function resetAll(){
   document.getElementById('g_list').innerHTML='';addReg();
   document.getElementById('t_list').innerHTML='';
   const tt=document.getElementById('t_tables');if(tt)tt.value='1';countTables();
+  ['soa_company','soa_tin','soa_address','soa_discount'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const sv=document.getElementById('soa_vat');if(sv)sv.checked=false;
+  const sr=document.getElementById('soa_result');if(sr)sr.hidden=true;
+  const sf=document.getElementById('soa_form');if(sf)sf.hidden=false;
+  CURRENT=null;
   go('choose');
 }
 function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme');const next=cur?(cur==='dark'?'light':'dark'):(matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',next);}
@@ -552,6 +766,9 @@ function toggleTheme(){const cur=document.documentElement.getAttribute('data-the
 addReg();
 document.getElementById('t_tables').addEventListener('input',countTables);
 countTables();
+/* inline SOA: recompute the estimate as billing options change */
+['soa_discount'].forEach(id=>document.getElementById(id).addEventListener('input',liveEstimateSoa));
+document.getElementById('soa_vat').addEventListener('change',liveEstimateSoa);
 </script>
 </body>
 </html>
