@@ -143,6 +143,8 @@
   .snx{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px}
   .snx b{font-size:12px;display:block;margin-bottom:3px}.snx span{font-size:11.5px;color:var(--muted)}
   .snx .n{font-family:var(--mono);font-size:10px;color:var(--accent-strong);font-weight:700}
+  .next-actions a+a{margin-top:10px}
+  .next-note{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
   .hsnote{display:flex;align-items:flex-start;gap:10px;margin-top:12px;font-size:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--muted);line-height:1.5}
   .hsnote .hdot{width:22px;height:22px;border-radius:6px;background:#FF7A59;color:#fff;display:grid;place-items:center;font-weight:800;font-size:11px;flex:none}
   .hsnote b{color:var(--ink)}
@@ -308,10 +310,11 @@
       <div><h3 id="done_title">Registration received</h3><p id="done_sub"></p></div>
     </div>
     <div id="done_summary"></div>
-    <div id="done_hs" class="hsnote"></div>
-    <div id="done_attr" class="hsnote" hidden></div>
-    <a id="done_cta" class="btn" style="display:block;text-align:center;margin-top:16px;text-decoration:none" target="_blank" rel="noopener">Continue</a>
-    <div class="steps-next" id="done_steps"></div>
+    <div class="next-actions">
+      <a id="pay_cta" class="btn" style="display:block;text-align:center;text-decoration:none" href="#" target="_blank" rel="noopener">Proceed to payment</a>
+      <a id="soa_cta" class="btn ghost" style="display:block;text-align:center;text-decoration:none" href="#" target="_blank" rel="noopener">Request a Statement of Account</a>
+    </div>
+    <p class="next-note" id="next_note"></p>
     <button class="btn ghost" style="margin-top:16px" onclick="resetAll()">New registration</button>
   </section>
 </main>
@@ -326,6 +329,9 @@
 const HUBSPOT_PORTAL='2500439';
 const HUBSPOT_FORM_GUID='790deae5-8808-4d25-b641-0dd91afa7b2d';
 const HUBSPOT_FORM_NAME='SaaScon PH 2027 Registration Form';
+/* Next-step destinations. Replace PAYMENT_URL with your checkout link. */
+const PAYMENT_URL='#';
+const SOA_URL='https://claude.ai/code/artifact/9b5aa527-5498-4800-b155-105715145d7d';
 
 /* UTM / attribution captured from the landing URL + HubSpot tracking cookie.
    These are sent to HubSpot with each submission (context.pageUri + hutk), so
@@ -472,36 +478,6 @@ function fieldsPreview(c){
 }
 function showConfirmation(d){
   const sum=document.getElementById('done_summary');
-  const cta=document.getElementById('done_cta');
-  const steps=document.getElementById('done_steps');
-  // Everyone who becomes a form submission.
-  let subs;
-  if(d.type==='Individual'){
-    subs=[{name:d.name,email:d.email,title:d.title,company:d.company,mobile:d.mobile}];
-  } else if(d.type==='Table'){
-    subs=[{name:d.rname,email:d.remail,company:d.company},...d.registrants.map(r=>({name:r.name,email:r.email,title:r.title,company:d.company}))];
-  } else {
-    subs=d.registrants.map(r=>({name:r.name,email:r.email,title:r.title,company:d.company}));
-  }
-  const n=subs.length;
-  document.getElementById('done_hs').innerHTML=`<div class="hdot">h</div>
-    <div>Submitted to the <b>HubSpot form</b> &ldquo;${esc(HUBSPOT_FORM_NAME)}&rdquo; — ${n} submission${n===1?'':'s'}
-    (portal <span class="mono">${HUBSPOT_PORTAL}</span>). First submission:
-    <span class="mono">${fieldsPreview(subs[0])}</span>.</div>`;
-
-  // Attribution note — UTMs + hubspotutk passed in the submission context.
-  const pairs=utmPairs();
-  const attrEl=document.getElementById('done_attr');
-  attrEl.hidden=false;
-  attrEl.innerHTML=`<div class="hdot" style="background:#2563EB">↗</div>
-    <div>${pairs.length
-      ? `UTM captured — ${pairs.map(([k,v])=>`<span class="mono">${esc(k)}=${esc(v)}</span>`).join(', ')}. `
-      : `No UTM parameters on this URL (try appending <span class="mono">?utm_source=…&utm_campaign=…</span>). `}
-    Sent to HubSpot as <span class="mono">pageUri</span>${ATTR.hutk?` + <span class="mono">hubspotutk</span> cookie`:``},
-    reflecting in the contact's <b>Original / Latest Source</b>.</div>`;
-
-  cta.hidden=true;
-
   if(d.type==='Individual'){
     document.getElementById('done_title').textContent="You're registered";
     document.getElementById('done_sub').textContent=`Confirmation on its way to ${d.email}`;
@@ -510,10 +486,6 @@ function showConfirmation(d){
       <div class="att"><div class="av">${esc((d.name||'?').slice(0,1).toUpperCase())}</div><div><div class="nm">${esc(d.name)}${d.title?` <span class="mt">· ${esc(d.title)}</span>`:''}</div><div class="mt">${esc(d.email)}${d.mobile?' · '+esc(d.mobile):''}</div></div></div>
       ${d.company?`<div class="kv"><span class="k">Company</span><span class="v">${esc(d.company)}</span></div>`:''}
     </div>`;
-    steps.innerHTML=`
-      <div class="snx"><span class="n">01</span><b>You're in HubSpot</b><span>Your submission is recorded on the SaaScon form.</span></div>
-      <div class="snx"><span class="n">02</span><b>Check your email</b><span>Confirmation and payment details follow.</span></div>
-      <div class="snx"><span class="n">03</span><b>See you at SaaScon</b><span>Your e-ticket arrives once confirmed.</span></div>`;
   } else if(d.type==='Table'){
     document.getElementById('done_title').textContent='Table reserved';
     document.getElementById('done_sub').textContent=`${d.tables} table${d.tables===1?'':'s'} (${d.tables*SEATS_PER_TABLE} seats) · ${d.rname}`;
@@ -525,11 +497,8 @@ function showConfirmation(d){
       ${d.registrants.length?`<div class="kv"><span class="k">Attendees listed</span><span class="v">${d.registrants.length}</span></div>`:''}
       ${d.registrants.map(r=>`<div class="att"><div class="av">${esc((r.name||'?').slice(0,1).toUpperCase())}</div><div><div class="nm">${esc(r.name||'—')}${r.title?` <span class="mt">· ${esc(r.title)}</span>`:''}</div><div class="mt">${esc(r.email)}</div></div></div>`).join('')}
     </div>`;
-    steps.innerHTML=`
-      <div class="snx"><span class="n">01</span><b>Table held in HubSpot</b><span>Recorded as a Table Registration.</span></div>
-      <div class="snx"><span class="n">02</span><b>Coordinator notified</b><span>Payment details sent to ${esc(d.remail)}.</span></div>
-      <div class="snx"><span class="n">03</span><b>Fill your seats</b><span>Send attendee names anytime before the event.</span></div>`;
   } else {
+    const n=d.registrants.length;
     document.getElementById('done_title').textContent='Group registration received';
     document.getElementById('done_sub').textContent=`${n} attendee${n===1?'':'s'} · coordinated by ${d.rname}`;
     sum.innerHTML=`<div class="summary">
@@ -539,11 +508,18 @@ function showConfirmation(d){
       <div class="kv"><span class="k">Attendees</span><span class="v">${n}</span></div>
       ${d.registrants.map(r=>`<div class="att"><div class="av">${esc((r.name||'?').slice(0,1).toUpperCase())}</div><div><div class="nm">${esc(r.name||'—')}${r.title?` <span class="mt">· ${esc(r.title)}</span>`:''}</div><div class="mt">${esc(r.email)}</div></div></div>`).join('')}
     </div>`;
-    steps.innerHTML=`
-      <div class="snx"><span class="n">01</span><b>Everyone in HubSpot</b><span>One form submission per attendee.</span></div>
-      <div class="snx"><span class="n">02</span><b>Coordinator notified</b><span>Payment details sent to ${esc(d.remail)}.</span></div>
-      <div class="snx"><span class="n">03</span><b>See you at SaaScon</b><span>E-tickets arrive once confirmed.</span></div>`;
   }
+  // Next step: pay now, or request a Statement of Account.
+  const indiv=d.type==='Individual';
+  const payBtn=document.getElementById('pay_cta');
+  const soaBtn=document.getElementById('soa_cta');
+  payBtn.href=PAYMENT_URL; soaBtn.href=SOA_URL;
+  const first=indiv?payBtn:soaBtn, second=indiv?soaBtn:payBtn;
+  first.parentElement.insertBefore(first,second);
+  first.className='btn'; second.className='btn ghost';
+  document.getElementById('next_note').textContent=indiv
+    ? 'Pay for your seat now, or request a Statement of Account if your company needs an invoice.'
+    : 'Request a Statement of Account for your group, or proceed to payment if you are paying now.';
   go('done');
 }
 
