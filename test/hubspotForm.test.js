@@ -24,10 +24,17 @@ test('buildFields maps a full contact to HubSpot form fields', () => {
 test('buildFields omits empty values (no title/company/mobile)', () => {
   const fields = buildFields({ name: 'Ana Reyes', email: 'ana@x.com' });
   const names = fields.map((f) => f.name);
-  assert.deepEqual(names.sort(), ['email', 'firstname', 'lastname'].sort());
+  assert.deepEqual(names.sort(), ['campaign_id', 'email', 'firstname', 'lastname'].sort());
   assert.ok(!names.includes('jobtitle'));
   assert.ok(!names.includes('company'));
   assert.ok(!names.includes('mobilephone'));
+});
+
+test('buildFields adds the hidden campaign_id on every submission', () => {
+  const byName = Object.fromEntries(
+    buildFields({ name: 'Ana Reyes', email: 'ana@x.com' }).map((f) => [f.name, f.value])
+  );
+  assert.equal(byName.campaign_id, 'Saascon 2027');
 });
 
 test('buildFields splits single-word names without a lastname value', () => {

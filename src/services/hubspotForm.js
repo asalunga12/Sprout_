@@ -35,6 +35,12 @@ const FIELD_MAP = {
   mobile: 'mobilephone',
 };
 
+// Hidden campaign field written on every submission (contact property
+// campaign_id = "Campaign ID"). The form must include this field for HubSpot to
+// accept it. Configurable; set the value empty to disable.
+const CAMPAIGN_PROP = env('HUBSPOT_CAMPAIGN_PROPERTY', 'campaign_id');
+const CAMPAIGN_VALUE = env('HUBSPOT_CAMPAIGN_VALUE', 'Saascon 2027');
+
 // Optional UTM -> contact-property mapping. The Sprout portal has NO dedicated
 // utm_* contact properties, so by default UTMs are reflected via HubSpot
 // analytics (the UTM query string in `context.pageUri` + the `hubspotutk`
@@ -70,13 +76,18 @@ export function buildFields(contact) {
     company: contact.company,
     mobile: contact.mobile,
   };
-  return Object.entries(values)
+  const fields = Object.entries(values)
     .filter(([, v]) => v != null && v !== '')
     .map(([key, value]) => ({
       objectTypeId: '0-1',
       name: FIELD_MAP[key],
       value: String(value),
     }));
+  // Hidden campaign id on every submission.
+  if (CAMPAIGN_PROP && CAMPAIGN_VALUE) {
+    fields.push({ objectTypeId: '0-1', name: CAMPAIGN_PROP, value: CAMPAIGN_VALUE });
+  }
+  return fields;
 }
 
 /** Ensure the pageUri carries the UTM query string (HubSpot attributes from it). */
