@@ -403,8 +403,9 @@
   Sprout Solutions Phil. Inc · events@sprout.ph — Registrations are submitted to the SaaScon PH 2027 form in HubSpot.
 </footer>
 
-<!-- jsPDF: client-side PDF for the downloadable Statement of Account -->
+<!-- jsPDF + QR generator: client-side downloadable Statement of Account -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>
 /* Link to the SOA console (the interface this one precedes). */
 /* HubSpot form registrations are submitted to. */
@@ -695,7 +696,7 @@ function generateSoa(){
   const r={trackingNumber:String(SOA_SEQ),invoiceNumber:'INV-'+String(1782378000000+SOA_SEQ),
     date:SOACFG.today,dueDate:addDays(SOACFG.today,SOACFG.termsDays),terms:'Net '+SOACFG.termsDays,
     company:f.company,tin:f.tin,address:f.address,rname:f.rname,remail:f.remail,
-    customer:f.customer,type:f.type,quantity:p.quantity,registrants:f.registrants,
+    customer:f.customer,type:f.type,regType:(CURRENT&&CURRENT.type)||'Group',quantity:p.quantity,registrants:f.registrants,
     pricing:p,checkout:soaCheckout(p,f.customer),status:'issued',
     seller:SOACFG.seller,event:{name:SOACFG.event},banks:SOACFG.banks,paymentNotes:SOACFG.paymentNotes};
   LAST_SOA=r;
@@ -714,15 +715,34 @@ function editSoa(){document.getElementById('soa_result').hidden=true;document.ge
    (the same layout rendered server-side by src/services/pdf.js). Generated in
    the browser with jsPDF so the download works on the live site and in the
    artifact preview alike; falls back to the print dialog if jsPDF is blocked. */
-/* The six SaaScon checkout links, exactly as they appear on the Sprout SOA. */
-const SOA_PAYLINKS=[
-  ['Individual Registration (Non-Sprout Client):','https://saascon.ph/product/saascon-ph-26-general-rate/'],
-  ['Individual Registration (Sprout Client):','https://saascon.ph/product/saascon-ph-26-customer-rate/'],
-  ['Group Registration (Non-Sprout Client):','https://saascon.ph/product/saascon-ph-26-group-general-rate/'],
-  ['Group Registration (Sprout Client):','https://saascon.ph/product/saascon-ph-26-group-customer-rate/'],
-  ['Table Registration (Non-Sprout Client):','https://saascon.ph/product/saascon-ph-26-table-general/'],
-  ['Table Registration (Sprout Client):','https://saascon.ph/product/saascon-ph-26-table-customer/'],
-];
+/* SaaScon checkout links keyed by registration type + client relationship.
+   The SOA prints ONLY the one matching this booking (see soaPayFor) — an
+   individual registration shows the individual link, a group the group link,
+   a table the table link. */
+const SOA_PAYLINKS={
+  Individual:{prospect:['Individual Registration (Non-Sprout Client)','https://saascon.ph/product/saascon-ph-26-general-rate/'],
+              client:['Individual Registration (Sprout Client)','https://saascon.ph/product/saascon-ph-26-customer-rate/']},
+  Group:{prospect:['Group Registration (Non-Sprout Client)','https://saascon.ph/product/saascon-ph-26-group-general-rate/'],
+         client:['Group Registration (Sprout Client)','https://saascon.ph/product/saascon-ph-26-group-customer-rate/']},
+  Table:{prospect:['Table Registration (Non-Sprout Client)','https://saascon.ph/product/saascon-ph-26-table-general/'],
+         client:['Table Registration (Sprout Client)','https://saascon.ph/product/saascon-ph-26-table-customer/']},
+};
+function soaPayFor(regType,customer){
+  const grp=SOA_PAYLINKS[regType]||SOA_PAYLINKS.Group;
+  return grp[customer==='client'?'client':'prospect'];
+}
+/* QR code as a PNG data URL (drawn onto a canvas via qrcode-generator). */
+function qrDataUrl(text){
+  try{
+    if(typeof qrcode!=='function')return null;
+    const qr=qrcode(0,'M');qr.addData(String(text));qr.make();
+    const n=qr.getModuleCount(),cell=6,margin=4,dim=(n+margin*2)*cell;
+    const cv=document.createElement('canvas');cv.width=cv.height=dim;
+    const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,dim,dim);ctx.fillStyle='#000';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++){if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);}
+    return cv.toDataURL('image/png');
+  }catch(e){return null;}
+}
 /* Dates on the SOA print as M/D/YYYY, like the original template. */
 function mdY(ymd){if(!ymd)return '';const[y,m,d]=String(ymd).split('-').map(Number);return `${m}/${d}/${y}`;}
 /* The full-colour Sprout logo (reads the data URI already embedded in --logo-light). */
@@ -814,7 +834,14 @@ function downloadSoa(){
   let py=72;const link=(url)=>{doc.setTextColor(...BLUE);doc.splitTextToSize(url,cW).forEach(w=>{doc.textWithLink(w,left,py,{url});const tw=doc.getTextWidth(w);doc.setDrawColor(...BLUE).setLineWidth(0.4).line(left,py+1.5,left+tw,py+1.5);py+=13;});};
   doc.setFont('helvetica','normal').setFontSize(10.5).setTextColor(...BLACK);
   T('Kindly settle the payment through the following:',left,py);py+=22;
-  SOA_PAYLINKS.forEach(([lb,url])=>{doc.setTextColor(...BLACK);T(lb,left,py);py+=13;link(url);py+=9;});
+  // Only the checkout link that matches this registration type + relationship.
+  const pick=soaPayFor(r.regType,r.customer);
+  doc.setFont('helvetica','bold').setTextColor(...BLACK);T(pick[0]+':',left,py);py+=15;
+  doc.setFont('helvetica','normal');link(pick[1]);py+=12;
+  // Scannable QR code for that same checkout link.
+  const qr=qrDataUrl(pick[1]);
+  if(qr){try{doc.addImage(qr,'PNG',left,py,96,96);doc.setFontSize(9).setTextColor(...GREY);T('Scan to pay',left,py+108);doc.setFontSize(10.5).setTextColor(...BLACK);py+=122;}catch(e){py+=6;}}
+  py+=8;
   doc.setTextColor(...BLACK);T('Otherwise, you may also settle via bank deposit.',left,py);py+=20;
   doc.splitTextToSize('Kindly indicate Company Name and/or Invoice number on remarks field (ex.: Sprout Solutions - INV00012345)',cW).forEach(w=>{T(w,left,py);py+=13;});py+=12;
   r.banks.forEach(b=>{['Bank: '+b.bank,'Bank account name: '+b.accountName,'Bank account number: '+b.accountNumber,'Account Type: '+b.accountType,'Currency: '+b.currency].forEach(l=>{T(l,left,py);py+=13;});py+=12;});
