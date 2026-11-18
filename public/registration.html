@@ -252,10 +252,7 @@
     <div class="panel" style="max-width:720px;margin:0 auto">
       <div class="panel-h"><h2>Group Registration</h2><span class="countpill" id="g_count">0 registrants</span></div>
       <div class="panel-b">
-        <div class="grid2">
-          <div><label>Company *</label><input type="text" id="g_company" placeholder="Company name"></div>
-          <div><label>TIN</label><input type="text" id="g_tin" placeholder="000-000-000-000"></div>
-        </div>
+        <div class="field"><label>Company *</label><input type="text" id="g_company" placeholder="Company name"></div>
         <div class="field" style="margin-top:13px"><label>Company address</label><input type="text" id="g_address" placeholder="Street, City, Province"></div>
         <div class="grid2" style="margin-top:13px">
           <div><label>Coordinator name *</label><input type="text" id="g_rname" placeholder="Who we coordinate with"></div>
@@ -288,10 +285,7 @@
     <div class="panel" style="max-width:720px;margin:0 auto">
       <div class="panel-h"><h2>Table Registration</h2><span class="countpill" id="t_count">1 table · 10 seats</span></div>
       <div class="panel-b">
-        <div class="grid2">
-          <div><label>Company *</label><input type="text" id="t_company" placeholder="Company name"></div>
-          <div><label>TIN</label><input type="text" id="t_tin" placeholder="000-000-000-000"></div>
-        </div>
+        <div class="field"><label>Company *</label><input type="text" id="t_company" placeholder="Company name"></div>
         <div class="field" style="margin-top:13px"><label>Company address</label><input type="text" id="t_address" placeholder="Street, City, Province"></div>
         <div class="grid2" style="margin-top:13px">
           <div><label>Coordinator name *</label><input type="text" id="t_rname" placeholder="Who we coordinate with"></div>
@@ -495,10 +489,9 @@ async function submitGroup(){
   if(!regs.length){err.textContent='Please add at least one attendee.';err.hidden=false;return;}
   if(!document.getElementById('g_consent').checked){err.textContent='Please agree to the Privacy Policy to continue.';err.hidden=false;return;}
   err.hidden=true;
-  const tin=document.getElementById('g_tin').value.trim();
   const address=document.getElementById('g_address').value.trim();
-  const data={type:'Group',company,rname,remail,tin,address,rel:relLabel(state.g_rel),registrants:regs};
-  const payload={kind:'group',company,tin,address,rname,remail,rel:state.g_rel,registrants:regs};
+  const data={type:'Group',company,rname,remail,address,rel:relLabel(state.g_rel),registrants:regs};
+  const payload={kind:'group',company,address,rname,remail,rel:state.g_rel,registrants:regs};
   await postRegistration(payload,data,err,document.querySelector('#group .btn'));
 }
 
@@ -514,11 +507,10 @@ async function submitTable(){
   if(!isEmail(remail)){err.textContent='Please enter a valid coordinator email.';err.hidden=false;return;}
   if(!document.getElementById('t_consent').checked){err.textContent='Please agree to the Privacy Policy to continue.';err.hidden=false;return;}
   err.hidden=true;
-  const tin=document.getElementById('t_tin').value.trim();
   const address=document.getElementById('t_address').value.trim();
   const registrants=readRegsT();
-  const data={type:'Table',company,rname,remail,tables,tin,address,rel:relLabel(state.t_rel),registrants};
-  const payload={kind:'table',company,tin,address,rname,remail,rel:state.t_rel,tables,registrants};
+  const data={type:'Table',company,rname,remail,tables,address,rel:relLabel(state.t_rel),registrants};
+  const payload={kind:'table',company,address,rname,remail,rel:state.t_rel,tables,registrants};
   await postRegistration(payload,data,err,document.querySelector('#table .btn'));
 }
 
@@ -913,7 +905,7 @@ function showConfirmation(d){
 }
 
 function resetAll(){
-  ['i_name','i_title','i_email','i_mobile','i_company','g_company','g_tin','g_address','g_rname','g_remail','t_company','t_tin','t_address','t_rname','t_remail'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['i_name','i_title','i_email','i_mobile','i_company','g_company','g_address','g_rname','g_remail','t_company','t_address','t_rname','t_remail'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['i_consent','g_consent','t_consent'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   document.getElementById('g_list').innerHTML='';addReg();
   document.getElementById('t_list').innerHTML='';
