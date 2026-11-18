@@ -633,9 +633,7 @@ function soaDoc(r){
       <div class="line"><span>Subtotal</span><span class="num">${money(p.subtotal)}</span></div>
       <div class="line"><span>${p.vatExempt?'VAT (exempt)':'Tax (12%)'}</span><span class="num">${money(p.vat)}</span></div>
       <div class="line total"><span>Balance due</span><span class="num">${peso(p.total)}</span></div></div>
-    <div class="doc-pay"><h4>Kindly settle the payment through the following</h4>
-      <div class="paylink primary"><div><div class="lbl">${esc(r.checkout.primary.label)}</div><div class="url">${esc(r.checkout.primary.url)}</div></div><span class="star">FOR YOU ★</span></div>
-      ${r.checkout.options.map(o=>`<div class="paylink"><div><div class="lbl">${esc(o.label)}</div><div class="url">${esc(o.url)}</div></div></div>`).join('')}
+    <div class="doc-pay"><h4>Kindly settle the payment via bank deposit</h4>
       <div class="banks">${SOACFG.banks.map(b=>`<div class="bank"><b>${esc(b.bank)}</b>Acct name: ${esc(b.accountName)}<br>Acct #: <span class="num">${esc(b.accountNumber)}</span> · ${esc(b.accountType)} · ${esc(b.currency)}</div>`).join('')}</div></div></div>`;
 }
 let SOA_SEQ=900;
