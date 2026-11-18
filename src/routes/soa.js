@@ -85,7 +85,19 @@ router.post('/preview', (req, res, next) => {
 // downloads). Keeps the emailed document identical to the downloaded one.
 router.post('/email', async (req, res, next) => {
   try {
-    const { to, filename, pdfBase64, company, invoiceNumber } = req.body || {};
+    const {
+      to,
+      toName,
+      filename,
+      pdfBase64,
+      company,
+      registrationType,
+      rateApplied,
+      subtotal,
+      vat,
+      total,
+      dueDate,
+    } = req.body || {};
     if (!to || !isEmail(to)) {
       throw new ValidationError('A valid "to" email address is required');
     }
@@ -101,16 +113,43 @@ router.post('/email', async (req, res, next) => {
         /[&<>"]/g,
         (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])
       );
-    const ref = invoiceNumber ? ` (${invoiceNumber})` : '';
-    const subject = `Your SaaScon PH 2027 Statement of Account${ref}`;
-    const html =
-      `<p>Hi,</p><p>Attached is your Statement of Account${company ? ` for ${esc(company)}` : ''}${ref}. ` +
-      `Kindly settle via the checkout link on the SOA or by bank deposit.</p><p>— Sprout Events</p>`;
+
+    const from = 'SaaScon PH 2027 <saascon@sprout.ph>';
+    const subject = `SaaScon PH 2027 - Statement of Account ${company || ''}`.trim();
+    const greetName = toName || 'there';
+
     const text =
-      `Attached is your Statement of Account${company ? ` for ${company}` : ''}${ref}. ` +
-      `Kindly settle via the checkout link on the SOA or by bank deposit.`;
+      `Hi ${greetName},\n\n` +
+      `Thank you for registering for the SaaScon PH 2027.\n\n` +
+      `Please find attached your Statement of Account.\n\n` +
+      `Registration Type:\n${registrationType || ''}\n\n` +
+      `${rateApplied || 'Regular rate'} Applied\n\n` +
+      `Breakdown:\n` +
+      `Subtotal (VAT Exclusive): ${subtotal || ''}\n` +
+      `VAT (12%): ${vat || ''}\n` +
+      `Total Amount Due (VAT Inclusive): ${total || ''}\n\n` +
+      `Due Date: ${dueDate || ''}\n\n` +
+      `Best regards,\n` +
+      `Sprout Solutions Team`;
+
+    const html =
+      `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#0B1410;line-height:1.6">` +
+      `<p>Hi ${esc(greetName)},</p>` +
+      `<p>Thank you for registering for the SaaScon PH 2027.</p>` +
+      `<p>Please find attached your Statement of Account.</p>` +
+      `<p><strong>Registration Type:</strong><br>${esc(registrationType)}</p>` +
+      `<p><strong>${esc(rateApplied || 'Regular rate')} Applied</strong></p>` +
+      `<p><strong>Breakdown:</strong><br>` +
+      `Subtotal (VAT Exclusive): ${esc(subtotal)}<br>` +
+      `VAT (12%): ${esc(vat)}<br>` +
+      `Total Amount Due (VAT Inclusive): ${esc(total)}</p>` +
+      `<p><strong>Due Date:</strong> ${esc(dueDate)}</p>` +
+      `<p>Best regards,<br>Sprout Solutions Team</p>` +
+      `</div>`;
+
     const mail = await sendMail({
       to,
+      from,
       subject,
       html,
       text,

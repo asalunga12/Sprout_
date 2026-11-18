@@ -837,9 +837,18 @@ async function emailSoa(){
   const b64=doc.output('datauristring');
   const html0=btn.innerHTML;btn.disabled=true;btn.textContent='Sending…';st.hidden=true;
   const demo=()=>{st.textContent=`On the live site your Statement of Account is emailed to ${r.remail||'you'}. (This preview has no mail server.)`;st.style.color='';st.hidden=false;};
+  const dueDisp=(()=>{try{return new Date(r.dueDate+'T00:00:00').toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});}catch(e){return r.dueDate;}})();
+  const payload={
+    to:r.remail,toName:r.rname,filename:`SOA-${r.invoiceNumber}.pdf`,pdfBase64:b64,
+    company:r.company,invoiceNumber:r.invoiceNumber,
+    registrationType:soaPayFor(r.regType,r.customer)[0],
+    rateApplied:r.pricing.earlyBird?'Early bird rate':'Regular rate',
+    subtotal:peso(r.pricing.subtotal),vat:peso(r.pricing.vat),total:peso(r.pricing.total),
+    dueDate:dueDisp
+  };
   try{
     const res=await fetch('/api/soa/email',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({to:r.remail,filename:`SOA-${r.invoiceNumber}.pdf`,pdfBase64:b64,company:r.company,invoiceNumber:r.invoiceNumber})});
+      body:JSON.stringify(payload)});
     if(res.ok){st.textContent=`Statement of Account sent to ${r.remail||'your email'}.`;st.style.color='var(--paid)';st.hidden=false;}
     else if(res.status===404){demo();}
     else{const j=await res.json().catch(()=>({}));st.textContent=j.error||('Could not send ('+res.status+'). Please try again.');st.style.color='';st.hidden=false;}

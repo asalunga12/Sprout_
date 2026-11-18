@@ -30,8 +30,8 @@ function getTransport() {
  * Send an email with optional attachments.
  * @returns {Promise<{ delivered: boolean, mode: 'smtp'|'outbox', ref: string }>}
  */
-export async function sendMail({ to, subject, html, text, attachments = [] }) {
-  const from = env('MAIL_FROM', 'Sprout Events <events@sprout.ph>');
+export async function sendMail({ to, from: fromArg, subject, html, text, attachments = [] }) {
+  const from = fromArg || env('MAIL_FROM', 'Sprout Events <events@sprout.ph>');
   const bcc = env('MAIL_BCC') || undefined;
   const transport = getTransport();
 
