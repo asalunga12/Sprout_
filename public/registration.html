@@ -390,6 +390,9 @@
           <a id="soa_pay" class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:16px" href="#" target="_blank" rel="noopener">Proceed to payment</a>
           <button class="btn ghost" style="margin-top:9px" onclick="downloadSoa()">
             <span style="display:inline-flex;align-items:center;gap:7px;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download SOA (PDF)</span></button>
+          <button class="btn ghost" id="soa_email" style="margin-top:9px" onclick="emailSoa()">
+            <span style="display:inline-flex;align-items:center;gap:7px;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M22 7l-10 5L2 7"/></svg>Send to my email</span></button>
+          <p id="soa_email_status" class="next-note" hidden></p>
           <button class="btn ghost" style="margin-top:9px" onclick="editSoa()">Edit billing details</button>
         </div>
       </div>
@@ -631,9 +634,7 @@ function soaDoc(r){
     <div class="doc-tot">${p.discount?`<div class="line"><span>Discount (${esc(p.discount.code)})</span><span class="num">- ${money(p.discountAmount)}</span></div>`:''}
       <div class="line"><span>Subtotal</span><span class="num">${money(p.subtotal)}</span></div>
       <div class="line"><span>${p.vatExempt?'VAT (exempt)':'Tax (12%)'}</span><span class="num">${money(p.vat)}</span></div>
-      <div class="line total"><span>Balance due</span><span class="num">${peso(p.total)}</span></div></div>
-    <div class="doc-pay"><h4>Kindly settle the payment via bank deposit</h4>
-      <div class="banks">${SOACFG.banks.map(b=>`<div class="bank"><b>${esc(b.bank)}</b>Acct name: ${esc(b.accountName)}<br>Acct #: <span class="num">${esc(b.accountNumber)}</span> · ${esc(b.accountType)} · ${esc(b.currency)}</div>`).join('')}</div></div></div>`;
+      <div class="line total"><span>Balance due</span><span class="num">${peso(p.total)}</span></div></div></div>`;
 }
 let SOA_SEQ=900;
 let LAST_SOA=null; /* the most recently generated SOA, for the PDF download */
@@ -749,10 +750,9 @@ function logoDataUri(){try{const v=getComputedStyle(document.documentElement).ge
    full-colour logo, seller block, STATEMENT OF ACCOUNT, BILL TO + meta, a
    bordered DATE/EVENT/REGISTRANTS/QTY/PHP/TOTAL table with a green header, the
    VAT-category totals, and a payment page with the SaaScon links, banks and notes. */
-function downloadSoa(){
-  const r=LAST_SOA; if(!r)return;
+function buildSoaDoc(r){
   const J=(window.jspdf||{}).jsPDF;
-  if(!J){printSoaFallback(r);return;}
+  if(!J)return null;
   const p=r.pricing,CUR='PHP';
   const doc=new J({unit:'pt',format:'letter'});
   const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
@@ -843,7 +843,32 @@ function downloadSoa(){
   doc.splitTextToSize('Kindly indicate Company Name and/or Invoice number on remarks field (ex.: Sprout Solutions - INV00012345)',cW).forEach(w=>{T(w,left,py);py+=13;});py+=12;
   r.banks.forEach(b=>{['Bank: '+b.bank,'Bank account name: '+b.accountName,'Bank account number: '+b.accountNumber,'Account Type: '+b.accountType,'Currency: '+b.currency].forEach(l=>{T(l,left,py);py+=13;});py+=12;});
   doc.splitTextToSize('Once payment has been made, kindly send the proof of payment at your earliest convenience. This will allow us to validate your payment and post it to our system promptly.',cW).forEach(w=>{T(w,left,py);py+=13;});
+  return doc;
+}
+function downloadSoa(){
+  const r=LAST_SOA; if(!r)return;
+  const doc=buildSoaDoc(r);
+  if(!doc){printSoaFallback(r);return;}
   doc.save(`SOA-${r.invoiceNumber}.pdf`);
+}
+/* Email the generated SOA (the very same PDF) to the requestor. On the live
+   site this POSTs the PDF to /api/soa/email; the preview has no mail server. */
+async function emailSoa(){
+  const r=LAST_SOA; if(!r)return;
+  const btn=document.getElementById('soa_email'),st=document.getElementById('soa_email_status');
+  const doc=buildSoaDoc(r);
+  if(!doc){st.textContent='Could not prepare the PDF in this browser.';st.style.color='';st.hidden=false;return;}
+  const b64=doc.output('datauristring');
+  const html0=btn.innerHTML;btn.disabled=true;btn.textContent='Sending…';st.hidden=true;
+  const demo=()=>{st.textContent=`On the live site your Statement of Account is emailed to ${r.remail||'you'}. (This preview has no mail server.)`;st.style.color='';st.hidden=false;};
+  try{
+    const res=await fetch('/api/soa/email',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:r.remail,filename:`SOA-${r.invoiceNumber}.pdf`,pdfBase64:b64,company:r.company,invoiceNumber:r.invoiceNumber})});
+    if(res.ok){st.textContent=`Statement of Account sent to ${r.remail||'your email'}.`;st.style.color='var(--paid)';st.hidden=false;}
+    else if(res.status===404){demo();}
+    else{const j=await res.json().catch(()=>({}));st.textContent=j.error||('Could not send ('+res.status+'). Please try again.');st.style.color='';st.hidden=false;}
+  }catch(e){demo();}
+  finally{btn.disabled=false;btn.innerHTML=html0;}
 }
 /* If jsPDF can't load, open a clean print view of the SOA document. */
 function printSoaFallback(r){

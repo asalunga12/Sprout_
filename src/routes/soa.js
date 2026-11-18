@@ -81,6 +81,53 @@ router.post('/preview', (req, res, next) => {
   }
 });
 
+// Email a client-generated SOA PDF to the requestor (the same PDF the page
+// downloads). Keeps the emailed document identical to the downloaded one.
+router.post('/email', async (req, res, next) => {
+  try {
+    const { to, filename, pdfBase64, company, invoiceNumber } = req.body || {};
+    if (!to || !isEmail(to)) {
+      throw new ValidationError('A valid "to" email address is required');
+    }
+    if (!pdfBase64) {
+      throw new ValidationError('pdfBase64 (the SOA PDF) is required');
+    }
+    const content = Buffer.from(
+      String(pdfBase64).replace(/^data:application\/pdf(;[^,]*)?,/, ''),
+      'base64'
+    );
+    const esc = (s) =>
+      String(s == null ? '' : s).replace(
+        /[&<>"]/g,
+        (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])
+      );
+    const ref = invoiceNumber ? ` (${invoiceNumber})` : '';
+    const subject = `Your SaaScon PH 2027 Statement of Account${ref}`;
+    const html =
+      `<p>Hi,</p><p>Attached is your Statement of Account${company ? ` for ${esc(company)}` : ''}${ref}. ` +
+      `Kindly settle via the checkout link on the SOA or by bank deposit.</p><p>— Sprout Events</p>`;
+    const text =
+      `Attached is your Statement of Account${company ? ` for ${company}` : ''}${ref}. ` +
+      `Kindly settle via the checkout link on the SOA or by bank deposit.`;
+    const mail = await sendMail({
+      to,
+      subject,
+      html,
+      text,
+      attachments: [
+        {
+          filename: filename || 'SOA.pdf',
+          content,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+    res.json({ ok: true, to, mode: mail.mode, delivered: mail.delivered });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // Create + issue an SOA.
 router.post('/', async (req, res, next) => {
   try {

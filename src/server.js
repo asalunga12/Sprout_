@@ -15,7 +15,7 @@ const app = express();
 app.use('/webhooks', express.raw({ type: '*/*', limit: '2mb' }), webhooksRouter);
 
 // Everything else uses JSON.
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '8mb' })); // SOA email carries a base64 PDF
 
 // Static forms.
 app.use(express.static(path.join(__dirname, '..', 'public')));
