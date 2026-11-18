@@ -775,7 +775,7 @@ function buildSoaDoc(r){
   const rowH=nLines*lineH+2*pad;
   // header bar
   doc.setFillColor(...GREEN).rect(left,y,cW,headH,'F');
-  doc.setTextColor(255,255,255).setFont('helvetica','bold').setFontSize(9);
+  doc.setTextColor(9,41,3).setFont('helvetica','bold').setFontSize(9); // deep green, not white
   cols.forEach((c,i)=>T(c.l,cX[i]+pad,y+13));
   // body
   const bodyY=y+headH;
