@@ -124,6 +124,9 @@
   .snx .n{font-family:var(--mono);font-size:10px;color:var(--accent-strong);font-weight:700}
   .next-actions a+a{margin-top:10px}
   .next-note{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
+  .refbox{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:12px 16px;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);background:var(--accent-soft);border-radius:12px}
+  .refbox .k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-strong);font-weight:700}
+  .refbox .v{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:.02em}
   .hsnote{display:flex;align-items:flex-start;gap:10px;margin-top:12px;font-size:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--muted);line-height:1.5}
   .hsnote .hdot{width:22px;height:22px;border-radius:6px;background:#FF7A59;color:#fff;display:grid;place-items:center;font-weight:800;font-size:11px;flex:none}
   .hsnote b{color:var(--ink)}
@@ -321,6 +324,7 @@
       <div class="tick"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
       <div><h3 id="done_title">Registration received</h3><p id="done_sub"></p></div>
     </div>
+    <div class="refbox"><span class="k">Registration number</span><span class="v num" id="done_ref"></span></div>
     <div id="done_summary"></div>
     <div class="next-actions">
       <a id="pay_cta" class="btn" style="display:block;text-align:center;text-decoration:none" href="#" target="_blank" rel="noopener">Proceed to payment</a>
@@ -402,6 +406,12 @@ function utmPairs(){return Object.entries(ATTR.utm).filter(([,v])=>v);}
 
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const isEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+/* A unique registration reference per submission, e.g. SC27-7F3A9C2B. */
+function regNumber(){
+  const t=Date.now().toString(36).toUpperCase();
+  const r=Math.random().toString(36).slice(2,6).toUpperCase();
+  return 'SC27-'+(t+r).slice(-8);
+}
 const state={i_rel:'nonclient',g_rel:'nonclient',t_rel:'nonclient'};
 const SEATS_PER_TABLE=10;
 let CURRENT=null; /* the booking just confirmed, so the inline SOA can pre-fill */
@@ -471,8 +481,9 @@ async function submitIndividual(){
   const title=document.getElementById('i_title').value.trim();
   const mobile=document.getElementById('i_mobile').value.trim();
   const company=document.getElementById('i_company').value.trim();
-  const data={type:'Individual',name,email,title,mobile,company,rel:relLabel(state.i_rel)};
-  const payload={kind:'individual',name,email,title,mobile,company,rel:state.i_rel};
+  const registrationNumber=regNumber();
+  const data={type:'Individual',registrationNumber,name,email,title,mobile,company,rel:relLabel(state.i_rel)};
+  const payload={kind:'individual',registrationNumber,name,email,title,mobile,company,rel:state.i_rel};
   await postRegistration(payload,data,err,document.querySelector('#individual .btn'));
 }
 
@@ -490,8 +501,9 @@ async function submitGroup(){
   if(!document.getElementById('g_consent').checked){err.textContent='Please agree to the Privacy Policy to continue.';err.hidden=false;return;}
   err.hidden=true;
   const address=document.getElementById('g_address').value.trim();
-  const data={type:'Group',company,rname,remail,address,rel:relLabel(state.g_rel),registrants:regs};
-  const payload={kind:'group',company,address,rname,remail,rel:state.g_rel,registrants:regs};
+  const registrationNumber=regNumber();
+  const data={type:'Group',registrationNumber,company,rname,remail,address,rel:relLabel(state.g_rel),registrants:regs};
+  const payload={kind:'group',registrationNumber,company,address,rname,remail,rel:state.g_rel,registrants:regs};
   await postRegistration(payload,data,err,document.querySelector('#group .btn'));
 }
 
@@ -509,8 +521,9 @@ async function submitTable(){
   err.hidden=true;
   const address=document.getElementById('t_address').value.trim();
   const registrants=readRegsT();
-  const data={type:'Table',company,rname,remail,tables,address,rel:relLabel(state.t_rel),registrants};
-  const payload={kind:'table',company,address,rname,remail,rel:state.t_rel,tables,registrants};
+  const registrationNumber=regNumber();
+  const data={type:'Table',registrationNumber,company,rname,remail,tables,address,rel:relLabel(state.t_rel),registrants};
+  const payload={kind:'table',registrationNumber,company,address,rname,remail,rel:state.t_rel,tables,registrants};
   await postRegistration(payload,data,err,document.querySelector('#table .btn'));
 }
 
@@ -857,6 +870,7 @@ function printSoaFallback(r){
 
 function showConfirmation(d){
   const sum=document.getElementById('done_summary');
+  document.getElementById('done_ref').textContent=d.registrationNumber||regNumber();
   if(d.type==='Individual'){
     document.getElementById('done_title').textContent="You're registered";
     document.getElementById('done_sub').textContent=`Confirmation on its way to ${d.email}`;
