@@ -1,6 +1,7 @@
 // POST /api/registrations — capture a registration (individual OR group) and
 // sync it to HubSpot (attendee contacts tagged with the event; a deal for
 // groups). This is the registration front-door, standalone from SOA issuance.
+import crypto from 'node:crypto';
 import express from 'express';
 import { store } from '../lib/store.js';
 import { isEmail, normaliseRegistrants, ValidationError } from '../lib/validate.js';
@@ -12,6 +13,32 @@ const router = express.Router();
 
 function relToCustomerType(rel) {
   return rel === 'client' || rel === 'sprout' ? 'client' : 'nonclient';
+}
+
+// --- Registration number (recorded in the `registrations` table, NOT HubSpot) ---
+const REG_NUMBER_RE = /^SC27-[0-9A-Z]{8}$/;
+
+/** A unique registration reference, e.g. SC27-7F3A9C2B. */
+export function generateRegistrationNumber() {
+  const t = Date.now().toString(36).toUpperCase();
+  const r = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `SC27-${(t + r).slice(-8)}`;
+}
+
+/**
+ * Settle the registration number server-side: accept the page's value when it
+ * is well-formed and not already used, otherwise mint a fresh unique one. This
+ * makes the backend table the authority on the number.
+ */
+export function ensureRegistrationNumber(candidate) {
+  let num =
+    typeof candidate === 'string' && REG_NUMBER_RE.test(candidate.trim())
+      ? candidate.trim()
+      : generateRegistrationNumber();
+  for (let i = 0; i < 6 && store.find('registrations', (r) => r.registrationNumber === num); i++) {
+    num = generateRegistrationNumber();
+  }
+  return num;
 }
 
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
@@ -29,6 +56,7 @@ router.post('/', async (req, res, next) => {
     const body = req.body || {};
     const kind = ['individual', 'table'].includes(body.kind) ? body.kind : 'group';
     const customerType = relToCustomerType(body.rel || body.customerType);
+    const registrationNumber = ensureRegistrationNumber(body.registrationNumber);
 
     let record;
     if (kind === 'individual') {
@@ -105,6 +133,7 @@ router.post('/', async (req, res, next) => {
       };
     }
 
+    record.registrationNumber = registrationNumber;
     store.insert('registrations', record);
 
     // Primary path: submit each attendee to the HubSpot form (one submission
@@ -135,6 +164,7 @@ router.post('/', async (req, res, next) => {
     res.status(201).json({
       ok: true,
       registrationId: record.id,
+      registrationNumber,
       kind,
       registrantCount: record.registrantCount,
       form,

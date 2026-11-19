@@ -462,6 +462,9 @@ async function postRegistration(payload, data, errEl, btn){
     const j=await res.json().catch(()=>({}));
     if(!res.ok){errEl.textContent=j.error||('Something went wrong ('+res.status+'). Please try again.');errEl.hidden=false;return;}
     errEl.hidden=true;
+    // The backend records the registration number in its table and returns the
+    // authoritative value; prefer it over the one generated on the page.
+    if(j&&j.registrationNumber)data.registrationNumber=j.registrationNumber;
     showConfirmation(data);
   }catch(e){
     errEl.textContent='Could not reach the server. Please check your connection and try again.';errEl.hidden=false;
