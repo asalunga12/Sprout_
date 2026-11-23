@@ -3,6 +3,7 @@
 // groups). This is the registration front-door, standalone from SOA issuance.
 import crypto from 'node:crypto';
 import express from 'express';
+import { env } from '../../config/env.js';
 import { store } from '../lib/store.js';
 import { isEmail, normaliseRegistrants, ValidationError } from '../lib/validate.js';
 import { syncRegistration } from '../services/hubspot.js';
@@ -51,6 +52,44 @@ function pickUtm(src = {}) {
   }
   return out;
 }
+
+// GET / — list recorded registrations for the admin view. If ADMIN_TOKEN is
+// set, a matching `x-admin-token` header or `?token=` is required (registration
+// rows contain attendee PII). Without ADMIN_TOKEN the list is open (dev/demo).
+router.get('/', (req, res, next) => {
+  try {
+    const needed = env('ADMIN_TOKEN');
+    if (needed && (req.get('x-admin-token') || req.query.token) !== needed) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const rows = store.all('registrations');
+    const registrations = rows
+      .slice()
+      .reverse()
+      .map((r) => ({
+        registrationNumber: r.registrationNumber || '',
+        id: r.id,
+        kind: r.kind,
+        customerType: r.customerType,
+        company: r.company || '',
+        contactName:
+          r.kind === 'individual' ? r.contacts?.[0]?.name || '' : r.requestor?.name || '',
+        contactEmail:
+          r.kind === 'individual' ? r.contacts?.[0]?.email || '' : r.requestor?.email || '',
+        companyHeadcount: r.companyHeadcount ?? '',
+        registrantCount: r.registrantCount ?? 0,
+        tables: r.tables ?? null,
+        eventRegistrationType: r.eventRegistrationType || '',
+        eventLeadStatus: r.eventLeadStatus || '',
+        paymentStatus: r.paymentStatus || 'Pending',
+        createdAt: r.createdAt,
+      }));
+    res.json({ ok: true, count: registrations.length, registrations });
+  } catch (e) {
+    next(e);
+  }
+});
 
 router.post('/', async (req, res, next) => {
   try {
@@ -139,6 +178,8 @@ router.post('/', async (req, res, next) => {
 
     record.registrationNumber = registrationNumber;
     record.companyHeadcount = companyHeadcount;
+    record.eventRegistrationType = registrationTypeValue({ kind, customerType });
+    record.eventLeadStatus = eventLeadStatusValue({ customerType });
     store.insert('registrations', record);
 
     // Primary path: submit each attendee to the HubSpot form (one submission
@@ -155,13 +196,11 @@ router.post('/', async (req, res, next) => {
     // Push the company headcount, event registration type and event lead status
     // onto every attendee contact (HubSpot `headcount`,
     // `event_registration_type`, `marketing_lead_status`).
-    const eventRegistrationType = registrationTypeValue({ kind, customerType });
-    const eventLeadStatus = eventLeadStatusValue({ customerType });
     const contactsForForm = formContacts.map((c) => ({
       ...c,
       headcount: companyHeadcount,
-      eventRegistrationType,
-      eventLeadStatus,
+      eventRegistrationType: record.eventRegistrationType,
+      eventLeadStatus: record.eventLeadStatus,
     }));
     // UTM / attribution forwarded from the landing page. HubSpot reflects UTMs
     // via the page URL + the hubspotutk cookie.

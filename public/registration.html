@@ -173,6 +173,27 @@
   @media(max-width:560px){.banks{grid-template-columns:1fr}.doc-mid{grid-template-columns:1fr}}
   .bank{font-size:10.5px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px}
   .bank b{color:var(--ink);display:block;font-size:11px;margin-bottom:2px}
+  /* view toggle + admin */
+  .viewtoggle{display:flex;gap:2px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:2px}
+  .viewtoggle button{border:0;background:transparent;color:var(--muted);padding:6px 12px;border-radius:7px;font-size:12px;font-weight:650}
+  .viewtoggle button.on{background:var(--surface);color:var(--accent-strong);box-shadow:var(--shadow)}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:620px){.tiles{grid-template-columns:1fr 1fr}}
+  .tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+  .tile .n{font-size:24px;font-weight:800;letter-spacing:-.02em}
+  .tile .l{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .tablewrap{overflow-x:auto}
+  table.adm{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.adm th{text-align:left;padding:9px 12px;background:var(--surface-2);color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;position:sticky;top:0}
+  table.adm th.r,table.adm td.r{text-align:right}
+  table.adm td{padding:10px 12px;border-top:1px solid var(--border);vertical-align:top;white-space:nowrap}
+  table.adm td .sub{color:var(--muted);font-size:11px}
+  table.adm tbody tr:hover{background:var(--surface-2)}
+  .regno{font-family:var(--mono);font-weight:700;color:var(--accent-strong)}
+  .pill{display:inline-block;font-size:10.5px;font-weight:650;padding:2px 8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted)}
+  .pill.client{background:var(--accent-soft);color:var(--accent-strong);border-color:transparent}
+  .pill.paid{background:var(--paid-soft);color:var(--paid);border-color:transparent}
+  .pill.pending{background:var(--pending-soft);color:var(--pending);border-color:transparent}
   footer{padding:24px 0 40px;text-align:center;color:var(--faint);font-size:11.5px;line-height:1.6}
 </style>
 </head>
@@ -183,6 +204,10 @@
     <div class="brand">
       <div class="logo" aria-hidden="true"></div>
       <div class="brand-txt"><h1>SaaScon PH 2027</h1><p>Registration</p></div>
+    </div>
+    <div class="viewtoggle" style="margin-left:auto">
+      <button id="vt_reg" class="on" onclick="switchView('register')">Registration</button>
+      <button id="vt_adm" onclick="switchView('admin')">Admin</button>
     </div>
   </div>
 </header>
@@ -382,6 +407,33 @@
     </div>
     <button class="btn ghost" style="margin-top:16px" onclick="resetAll()">New registration</button>
   </section>
+
+  <!-- ADMIN VIEW -->
+  <section id="admin" hidden>
+    <div class="hero" style="text-align:left;max-width:none;margin-bottom:16px">
+      <div class="ey">Admin</div>
+      <h2 style="font-size:22px">Registrations</h2>
+      <p>Everyone who has registered for SaaScon PH 2027.</p>
+    </div>
+    <div class="tiles" id="adm_tiles"></div>
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-h" style="display:flex;align-items:center;gap:10px">
+        <h2 style="margin:0">All registrations</h2>
+        <input id="adm_search" placeholder="Search company, name, email, reg #" oninput="renderAdmin()" style="margin-left:auto;max-width:260px">
+        <button class="btn ghost" style="width:auto;padding:8px 14px" onclick="loadAdmin()">Refresh</button>
+      </div>
+      <div class="tablewrap">
+        <table class="adm">
+          <thead><tr>
+            <th>Reg #</th><th>Type</th><th>Relationship</th><th>Company</th><th>Contact</th>
+            <th class="r">Headcount</th><th class="r">Pax</th><th>Lead status</th><th>Payment</th><th>Date</th>
+          </tr></thead>
+          <tbody id="adm_rows"></tbody>
+        </table>
+      </div>
+      <p id="adm_empty" class="next-note" hidden style="padding:18px">No registrations yet.</p>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -427,7 +479,68 @@ let CURRENT=null; /* the booking just confirmed, so the inline SOA can pre-fill 
 
 function go(id){
   ['choose','individual','group','table','done','soa'].forEach(s=>document.getElementById(s).hidden=(s!==id));
+  document.getElementById('admin').hidden=true;
+  document.getElementById('vt_reg').classList.add('on');document.getElementById('vt_adm').classList.remove('on');
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---------- views: registrant form vs admin dashboard ---------- */
+function switchView(v){
+  if(v==='admin'){
+    ['choose','individual','group','table','done','soa'].forEach(s=>document.getElementById(s).hidden=true);
+    document.getElementById('admin').hidden=false;
+    document.getElementById('vt_adm').classList.add('on');document.getElementById('vt_reg').classList.remove('on');
+    window.scrollTo({top:0,behavior:'smooth'});
+    loadAdmin();
+  } else { go('choose'); }
+}
+/* Demo rows shown when there is no backend (the artifact preview). */
+const ADMIN_DEMO=[
+  {registrationNumber:'SC27-7F3A9C2B',kind:'group',customerType:'client',company:'Acme Corporation',contactName:'Jamie Cruz',contactEmail:'jamie@acme.com',companyHeadcount:250,registrantCount:3,tables:null,eventRegistrationType:'Group Registration - Client',eventLeadStatus:'Already with CSM',paymentStatus:'Pending',createdAt:'2026-11-22T02:14:00.000Z'},
+  {registrationNumber:'SC27-91KD20AX',kind:'individual',customerType:'nonclient',company:'Northwind Inc.',contactName:'Marco Reyes',contactEmail:'marco@northwind.ph',companyHeadcount:40,registrantCount:1,tables:null,eventRegistrationType:'Individual Registration',eventLeadStatus:'Transferred to SDR',paymentStatus:'Paid',createdAt:'2026-11-21T08:40:00.000Z'},
+  {registrationNumber:'SC27-5BQ7T1MP',kind:'table',customerType:'nonclient',company:'BrightPath HR',contactName:'Aira Santos',contactEmail:'aira@brightpath.co',companyHeadcount:120,registrantCount:0,tables:2,eventRegistrationType:'Table Registration',eventLeadStatus:'Transferred to SDR',paymentStatus:'Pending',createdAt:'2026-11-20T01:05:00.000Z'},
+];
+let ADMIN_ROWS=[];
+async function loadAdmin(){
+  let rows=null;
+  try{ const res=await fetch('/api/registrations'); if(res.ok){const j=await res.json();rows=j.registrations;} }catch(e){}
+  ADMIN_ROWS = rows || ADMIN_DEMO;
+  renderAdmin();
+}
+const TYPE_LABEL={individual:'Individual',group:'Group',table:'Table'};
+const LEAD_LABEL={'Already with CSM':'Already with CSM','Transferred to SDR':'Already tapped by SDR'};
+function renderAdmin(){
+  const q=(document.getElementById('adm_search').value||'').toLowerCase().trim();
+  const rows=ADMIN_ROWS.filter(r=>!q||[r.registrationNumber,r.company,r.contactName,r.contactEmail].some(v=>String(v||'').toLowerCase().includes(q)));
+  // tiles
+  const total=ADMIN_ROWS.length;
+  const pax=ADMIN_ROWS.reduce((s,r)=>s+(Number(r.registrantCount)||0)+(r.kind==='table'?(Number(r.tables)||0)*SEATS_PER_TABLE:0),0);
+  const clients=ADMIN_ROWS.filter(r=>r.customerType==='client').length;
+  const pending=ADMIN_ROWS.filter(r=>r.paymentStatus!=='Paid').length;
+  document.getElementById('adm_tiles').innerHTML=[
+    ['Registrations',total],['Total pax',pax],['Sprout clients',clients],['Pending payment',pending]
+  ].map(([l,n])=>`<div class="tile"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+  // rows
+  const body=document.getElementById('adm_rows'),empty=document.getElementById('adm_empty');
+  empty.hidden=rows.length>0;
+  body.innerHTML=rows.map(r=>{
+    const rel=r.customerType==='client'?'<span class="pill client">Sprout Client</span>':'<span class="pill">Non-Sprout</span>';
+    const pax=r.kind==='table'?`${(Number(r.tables)||0)*SEATS_PER_TABLE} seats`:(r.registrantCount||0);
+    const pay=r.paymentStatus==='Paid'?'<span class="pill paid">Paid</span>':'<span class="pill pending">Pending</span>';
+    const date=(r.createdAt||'').slice(0,10);
+    return `<tr>
+      <td><span class="regno">${esc(r.registrationNumber||'—')}</span></td>
+      <td>${esc(TYPE_LABEL[r.kind]||r.kind)}</td>
+      <td>${rel}</td>
+      <td>${esc(r.company||'—')}</td>
+      <td>${esc(r.contactName||'—')}<div class="sub">${esc(r.contactEmail||'')}</div></td>
+      <td class="r">${r.companyHeadcount!==''&&r.companyHeadcount!=null?esc(r.companyHeadcount):'—'}</td>
+      <td class="r">${esc(pax)}</td>
+      <td>${esc(LEAD_LABEL[r.eventLeadStatus]||r.eventLeadStatus||'—')}</td>
+      <td>${pay}</td>
+      <td>${esc(date)}</td>
+    </tr>`;
+  }).join('');
 }
 
 /* segmented toggles */
