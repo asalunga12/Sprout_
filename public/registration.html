@@ -231,7 +231,10 @@
           <div><label>Email *</label><input type="email" id="i_email" placeholder="you@company.com"></div>
           <div><label>Mobile</label><input type="tel" id="i_mobile" placeholder="+63 9XX XXX XXXX"></div>
         </div>
-        <div class="field" style="margin-top:13px"><label>Company</label><input type="text" id="i_company" placeholder="Company name"></div>
+        <div class="grid2" style="margin-top:13px">
+          <div><label>Company</label><input type="text" id="i_company" placeholder="Company name"></div>
+          <div><label>Company Headcount</label><input type="number" id="i_headcount" min="1" step="1" placeholder="e.g. 250"></div>
+        </div>
         <div class="field"><label>Company relationship</label>
           <div class="seg" id="i_seg">
             <button type="button" data-v="nonclient" aria-pressed="true">Non-Sprout Client</button>
@@ -255,7 +258,10 @@
     <div class="panel" style="max-width:720px;margin:0 auto">
       <div class="panel-h"><h2>Group Registration</h2><span class="countpill" id="g_count">0 registrants</span></div>
       <div class="panel-b">
-        <div class="field"><label>Company *</label><input type="text" id="g_company" placeholder="Company name"></div>
+        <div class="grid2">
+          <div><label>Company *</label><input type="text" id="g_company" placeholder="Company name"></div>
+          <div><label>Company Headcount</label><input type="number" id="g_headcount" min="1" step="1" placeholder="e.g. 250"></div>
+        </div>
         <div class="field" style="margin-top:13px"><label>Company address</label><input type="text" id="g_address" placeholder="Street, City, Province"></div>
         <div class="grid2" style="margin-top:13px">
           <div><label>Coordinator name *</label><input type="text" id="g_rname" placeholder="Who we coordinate with"></div>
@@ -288,7 +294,10 @@
     <div class="panel" style="max-width:720px;margin:0 auto">
       <div class="panel-h"><h2>Table Registration</h2><span class="countpill" id="t_count">1 table · 10 seats</span></div>
       <div class="panel-b">
-        <div class="field"><label>Company *</label><input type="text" id="t_company" placeholder="Company name"></div>
+        <div class="grid2">
+          <div><label>Company *</label><input type="text" id="t_company" placeholder="Company name"></div>
+          <div><label>Company Headcount</label><input type="number" id="t_headcount" min="1" step="1" placeholder="e.g. 250"></div>
+        </div>
         <div class="field" style="margin-top:13px"><label>Company address</label><input type="text" id="t_address" placeholder="Street, City, Province"></div>
         <div class="grid2" style="margin-top:13px">
           <div><label>Coordinator name *</label><input type="text" id="t_rname" placeholder="Who we coordinate with"></div>
@@ -484,9 +493,10 @@ async function submitIndividual(){
   const title=document.getElementById('i_title').value.trim();
   const mobile=document.getElementById('i_mobile').value.trim();
   const company=document.getElementById('i_company').value.trim();
+  const companyHeadcount=document.getElementById('i_headcount').value.trim();
   const registrationNumber=regNumber();
-  const data={type:'Individual',registrationNumber,name,email,title,mobile,company,rel:relLabel(state.i_rel)};
-  const payload={kind:'individual',registrationNumber,name,email,title,mobile,company,rel:state.i_rel};
+  const data={type:'Individual',registrationNumber,name,email,title,mobile,company,companyHeadcount,rel:relLabel(state.i_rel)};
+  const payload={kind:'individual',registrationNumber,name,email,title,mobile,company,companyHeadcount,rel:state.i_rel};
   await postRegistration(payload,data,err,document.querySelector('#individual .btn'));
 }
 
@@ -504,9 +514,10 @@ async function submitGroup(){
   if(!document.getElementById('g_consent').checked){err.textContent='Please agree to the Privacy Policy to continue.';err.hidden=false;return;}
   err.hidden=true;
   const address=document.getElementById('g_address').value.trim();
+  const companyHeadcount=document.getElementById('g_headcount').value.trim();
   const registrationNumber=regNumber();
-  const data={type:'Group',registrationNumber,company,rname,remail,address,rel:relLabel(state.g_rel),registrants:regs};
-  const payload={kind:'group',registrationNumber,company,address,rname,remail,rel:state.g_rel,registrants:regs};
+  const data={type:'Group',registrationNumber,company,rname,remail,address,companyHeadcount,rel:relLabel(state.g_rel),registrants:regs};
+  const payload={kind:'group',registrationNumber,company,address,companyHeadcount,rname,remail,rel:state.g_rel,registrants:regs};
   await postRegistration(payload,data,err,document.querySelector('#group .btn'));
 }
 
@@ -523,10 +534,11 @@ async function submitTable(){
   if(!document.getElementById('t_consent').checked){err.textContent='Please agree to the Privacy Policy to continue.';err.hidden=false;return;}
   err.hidden=true;
   const address=document.getElementById('t_address').value.trim();
+  const companyHeadcount=document.getElementById('t_headcount').value.trim();
   const registrants=readRegsT();
   const registrationNumber=regNumber();
-  const data={type:'Table',registrationNumber,company,rname,remail,tables,address,rel:relLabel(state.t_rel),registrants};
-  const payload={kind:'table',registrationNumber,company,address,rname,remail,rel:state.t_rel,tables,registrants};
+  const data={type:'Table',registrationNumber,company,rname,remail,tables,address,companyHeadcount,rel:relLabel(state.t_rel),registrants};
+  const payload={kind:'table',registrationNumber,company,address,companyHeadcount,rname,remail,rel:state.t_rel,tables,registrants};
   await postRegistration(payload,data,err,document.querySelector('#table .btn'));
 }
 
@@ -922,7 +934,7 @@ function showConfirmation(d){
 }
 
 function resetAll(){
-  ['i_name','i_title','i_email','i_mobile','i_company','g_company','g_address','g_rname','g_remail','t_company','t_address','t_rname','t_remail'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['i_name','i_title','i_email','i_mobile','i_company','i_headcount','g_company','g_headcount','g_address','g_rname','g_remail','t_company','t_headcount','t_address','t_rname','t_remail'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['i_consent','g_consent','t_consent'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   document.getElementById('g_list').innerHTML='';addReg();
   document.getElementById('t_list').innerHTML='';

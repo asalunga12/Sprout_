@@ -41,8 +41,8 @@ const FIELD_MAP = {
 const CAMPAIGN_PROP = env('HUBSPOT_CAMPAIGN_PROPERTY', 'campaign_id');
 const CAMPAIGN_VALUE = env('HUBSPOT_CAMPAIGN_VALUE', 'Saascon 2027');
 
-// Headcount (number of registrants) written to a contact number property.
-// The HubSpot form must include this field. Set the env var empty to disable.
+// Company headcount (entered on the registration form) written to a contact
+// number property. The HubSpot form must include this field. Blank to disable.
 const HEADCOUNT_PROP = env('HUBSPOT_HEADCOUNT_PROPERTY', 'headcount');
 
 // Event registration type (enumeration) — the value is computed per
@@ -96,7 +96,7 @@ export function buildFields(contact) {
   if (CAMPAIGN_PROP && CAMPAIGN_VALUE) {
     fields.push({ objectTypeId: '0-1', name: CAMPAIGN_PROP, value: CAMPAIGN_VALUE });
   }
-  // Headcount (number of registrants) when provided and a property is configured.
+  // Company headcount when provided and a property is configured.
   if (HEADCOUNT_PROP && contact.headcount != null && contact.headcount !== '') {
     fields.push({ objectTypeId: '0-1', name: HEADCOUNT_PROP, value: String(contact.headcount) });
   }

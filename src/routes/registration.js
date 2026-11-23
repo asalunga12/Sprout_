@@ -58,6 +58,9 @@ router.post('/', async (req, res, next) => {
     const kind = ['individual', 'table'].includes(body.kind) ? body.kind : 'group';
     const customerType = relToCustomerType(body.rel || body.customerType);
     const registrationNumber = ensureRegistrationNumber(body.registrationNumber);
+    // Company headcount is entered on the form and pushed to HubSpot's
+    // `headcount` property. Blank/invalid -> not pushed.
+    const companyHeadcount = Number(body.companyHeadcount) > 0 ? Number(body.companyHeadcount) : '';
 
     let record;
     if (kind === 'individual') {
@@ -81,7 +84,6 @@ router.post('/', async (req, res, next) => {
           },
         ],
         registrantCount: 1,
-        headcount: 1,
         paymentStatus: 'Pending',
       };
     } else if (kind === 'table') {
@@ -106,7 +108,6 @@ router.post('/', async (req, res, next) => {
         registrants,
         tables,
         registrantCount: registrants.length,
-        headcount: tables * 10,
         paymentStatus: 'Pending',
       };
     } else {
@@ -132,12 +133,12 @@ router.post('/', async (req, res, next) => {
         requestor: { name: rname, email: remail },
         registrants,
         registrantCount: registrants.length,
-        headcount: registrants.length,
         paymentStatus: 'Pending',
       };
     }
 
     record.registrationNumber = registrationNumber;
+    record.companyHeadcount = companyHeadcount;
     store.insert('registrations', record);
 
     // Primary path: submit each attendee to the HubSpot form (one submission
@@ -151,12 +152,12 @@ router.post('/', async (req, res, next) => {
               ...record.registrants.map((r) => ({ ...r, company: record.company })),
             ]
           : record.registrants.map((r) => ({ ...r, company: record.company }));
-    // Push the registration's headcount and event registration type onto every
+    // Push the company headcount and event registration type onto every
     // attendee contact (HubSpot `headcount` + `event_registration_type`).
     const eventRegistrationType = registrationTypeValue({ kind, customerType });
     const contactsForForm = formContacts.map((c) => ({
       ...c,
-      headcount: record.headcount,
+      headcount: companyHeadcount,
       eventRegistrationType,
     }));
     // UTM / attribution forwarded from the landing page. HubSpot reflects UTMs
