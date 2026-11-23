@@ -45,6 +45,11 @@ const CAMPAIGN_VALUE = env('HUBSPOT_CAMPAIGN_VALUE', 'Saascon 2027');
 // The HubSpot form must include this field. Set the env var empty to disable.
 const HEADCOUNT_PROP = env('HUBSPOT_HEADCOUNT_PROPERTY', 'headcount');
 
+// Event registration type (enumeration) — the value is computed per
+// registration (see config/hubspot.js registrationTypeValue) and passed on each
+// contact. The HubSpot form must include this field. Blank the env to disable.
+const REGTYPE_PROP = env('HUBSPOT_REGISTRATION_TYPE_PROPERTY', 'event_registration_type');
+
 // Optional UTM -> contact-property mapping. The Sprout portal has NO dedicated
 // utm_* contact properties, so by default UTMs are reflected via HubSpot
 // analytics (the UTM query string in `context.pageUri` + the `hubspotutk`
@@ -94,6 +99,10 @@ export function buildFields(contact) {
   // Headcount (number of registrants) when provided and a property is configured.
   if (HEADCOUNT_PROP && contact.headcount != null && contact.headcount !== '') {
     fields.push({ objectTypeId: '0-1', name: HEADCOUNT_PROP, value: String(contact.headcount) });
+  }
+  // Event registration type (enumeration), computed per registration.
+  if (REGTYPE_PROP && contact.eventRegistrationType) {
+    fields.push({ objectTypeId: '0-1', name: REGTYPE_PROP, value: String(contact.eventRegistrationType) });
   }
   return fields;
 }

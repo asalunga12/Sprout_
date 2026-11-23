@@ -52,6 +52,17 @@ test('buildFields omits headcount when not provided', () => {
   assert.ok(!names.includes('headcount'));
 });
 
+test('buildFields writes event_registration_type when provided', () => {
+  const byName = Object.fromEntries(
+    buildFields({
+      name: 'Ana Reyes',
+      email: 'ana@x.com',
+      eventRegistrationType: 'Group Registration - Client',
+    }).map((f) => [f.name, f.value])
+  );
+  assert.equal(byName.event_registration_type, 'Group Registration - Client');
+});
+
 test('buildFields maps an attendee contact number to mobilephone', () => {
   const byName = Object.fromEntries(
     buildFields({ name: 'Ana Reyes', email: 'ana@x.com', mobile: '+63 900 111 2222' }).map((f) => [

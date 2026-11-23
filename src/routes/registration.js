@@ -7,6 +7,7 @@ import { store } from '../lib/store.js';
 import { isEmail, normaliseRegistrants, ValidationError } from '../lib/validate.js';
 import { syncRegistration } from '../services/hubspot.js';
 import { submitRegistrationToForm } from '../services/hubspotForm.js';
+import { registrationTypeValue } from '../../config/hubspot.js';
 import { event } from '../../config/event.js';
 
 const router = express.Router();
@@ -150,9 +151,14 @@ router.post('/', async (req, res, next) => {
               ...record.registrants.map((r) => ({ ...r, company: record.company })),
             ]
           : record.registrants.map((r) => ({ ...r, company: record.company }));
-    // Push the registration's headcount onto every attendee contact (HubSpot
-    // `headcount` number property, configurable via HUBSPOT_HEADCOUNT_PROPERTY).
-    const contactsForForm = formContacts.map((c) => ({ ...c, headcount: record.headcount }));
+    // Push the registration's headcount and event registration type onto every
+    // attendee contact (HubSpot `headcount` + `event_registration_type`).
+    const eventRegistrationType = registrationTypeValue({ kind, customerType });
+    const contactsForForm = formContacts.map((c) => ({
+      ...c,
+      headcount: record.headcount,
+      eventRegistrationType,
+    }));
     // UTM / attribution forwarded from the landing page. HubSpot reflects UTMs
     // via the page URL + the hubspotutk cookie.
     const utm = pickUtm(body.utm || body);
