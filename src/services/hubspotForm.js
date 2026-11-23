@@ -50,6 +50,11 @@ const HEADCOUNT_PROP = env('HUBSPOT_HEADCOUNT_PROPERTY', 'headcount');
 // contact. The HubSpot form must include this field. Blank the env to disable.
 const REGTYPE_PROP = env('HUBSPOT_REGISTRATION_TYPE_PROPERTY', 'event_registration_type');
 
+// Event Leads Status (enumeration marketing_lead_status) — computed per
+// registration (see config/hubspot.js eventLeadStatusValue). The HubSpot form
+// must include this field. Blank the env to disable.
+const EVENT_LEAD_STATUS_PROP = env('HUBSPOT_EVENT_LEAD_STATUS_PROPERTY', 'marketing_lead_status');
+
 // Optional UTM -> contact-property mapping. The Sprout portal has NO dedicated
 // utm_* contact properties, so by default UTMs are reflected via HubSpot
 // analytics (the UTM query string in `context.pageUri` + the `hubspotutk`
@@ -103,6 +108,10 @@ export function buildFields(contact) {
   // Event registration type (enumeration), computed per registration.
   if (REGTYPE_PROP && contact.eventRegistrationType) {
     fields.push({ objectTypeId: '0-1', name: REGTYPE_PROP, value: String(contact.eventRegistrationType) });
+  }
+  // Event Leads Status (enumeration), computed per registration.
+  if (EVENT_LEAD_STATUS_PROP && contact.eventLeadStatus) {
+    fields.push({ objectTypeId: '0-1', name: EVENT_LEAD_STATUS_PROP, value: String(contact.eventLeadStatus) });
   }
   return fields;
 }

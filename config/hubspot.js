@@ -43,6 +43,14 @@ export function registrationTypeValue({ kind, registrationType, customerType }) 
   return client ? 'Group Registration - Client' : 'Group Registration';
 }
 
+// Event Leads Status (marketing_lead_status, enumeration). We submit the option
+// INTERNAL VALUE (which differs from the label for the SDR option):
+//   Sprout client     -> 'Already with CSM'    (label "Already with CSM")
+//   non-Sprout client  -> 'Transferred to SDR'  (label "Already tapped by SDR")
+export function eventLeadStatusValue({ customerType }) {
+  return customerType === 'client' ? 'Already with CSM' : 'Transferred to SDR';
+}
+
 /** Build the contact event properties block written on every attendee. */
 export function contactEventProps({
   eventName,

@@ -52,6 +52,17 @@ test('buildFields omits headcount when not provided', () => {
   assert.ok(!names.includes('headcount'));
 });
 
+test('buildFields writes event lead status (marketing_lead_status) when provided', () => {
+  const byName = Object.fromEntries(
+    buildFields({
+      name: 'Ana Reyes',
+      email: 'ana@x.com',
+      eventLeadStatus: 'Transferred to SDR',
+    }).map((f) => [f.name, f.value])
+  );
+  assert.equal(byName.marketing_lead_status, 'Transferred to SDR');
+});
+
 test('buildFields writes event_registration_type when provided', () => {
   const byName = Object.fromEntries(
     buildFields({
