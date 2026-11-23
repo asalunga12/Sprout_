@@ -41,6 +41,10 @@ const FIELD_MAP = {
 const CAMPAIGN_PROP = env('HUBSPOT_CAMPAIGN_PROPERTY', 'campaign_id');
 const CAMPAIGN_VALUE = env('HUBSPOT_CAMPAIGN_VALUE', 'Saascon 2027');
 
+// Headcount (number of registrants) written to a contact number property.
+// The HubSpot form must include this field. Set the env var empty to disable.
+const HEADCOUNT_PROP = env('HUBSPOT_HEADCOUNT_PROPERTY', 'headcount');
+
 // Optional UTM -> contact-property mapping. The Sprout portal has NO dedicated
 // utm_* contact properties, so by default UTMs are reflected via HubSpot
 // analytics (the UTM query string in `context.pageUri` + the `hubspotutk`
@@ -86,6 +90,10 @@ export function buildFields(contact) {
   // Hidden campaign id on every submission.
   if (CAMPAIGN_PROP && CAMPAIGN_VALUE) {
     fields.push({ objectTypeId: '0-1', name: CAMPAIGN_PROP, value: CAMPAIGN_VALUE });
+  }
+  // Headcount (number of registrants) when provided and a property is configured.
+  if (HEADCOUNT_PROP && contact.headcount != null && contact.headcount !== '') {
+    fields.push({ objectTypeId: '0-1', name: HEADCOUNT_PROP, value: String(contact.headcount) });
   }
   return fields;
 }

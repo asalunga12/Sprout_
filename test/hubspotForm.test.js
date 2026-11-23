@@ -37,6 +37,31 @@ test('buildFields adds the hidden campaign_id on every submission', () => {
   assert.equal(byName.campaign_id, 'Saascon 2027');
 });
 
+test('buildFields writes headcount when provided', () => {
+  const byName = Object.fromEntries(
+    buildFields({ name: 'Ana Reyes', email: 'ana@x.com', headcount: 3 }).map((f) => [
+      f.name,
+      f.value,
+    ])
+  );
+  assert.equal(byName.headcount, '3');
+});
+
+test('buildFields omits headcount when not provided', () => {
+  const names = buildFields({ name: 'Ana Reyes', email: 'ana@x.com' }).map((f) => f.name);
+  assert.ok(!names.includes('headcount'));
+});
+
+test('buildFields maps an attendee contact number to mobilephone', () => {
+  const byName = Object.fromEntries(
+    buildFields({ name: 'Ana Reyes', email: 'ana@x.com', mobile: '+63 900 111 2222' }).map((f) => [
+      f.name,
+      f.value,
+    ])
+  );
+  assert.equal(byName.mobilephone, '+63 900 111 2222');
+});
+
 test('buildFields splits single-word names without a lastname value', () => {
   const fields = buildFields({ name: 'Madonna', email: 'm@x.com' });
   const byName = Object.fromEntries(fields.map((f) => [f.name, f.value]));

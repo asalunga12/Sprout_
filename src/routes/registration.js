@@ -80,6 +80,7 @@ router.post('/', async (req, res, next) => {
           },
         ],
         registrantCount: 1,
+        headcount: 1,
         paymentStatus: 'Pending',
       };
     } else if (kind === 'table') {
@@ -104,6 +105,7 @@ router.post('/', async (req, res, next) => {
         registrants,
         tables,
         registrantCount: registrants.length,
+        headcount: tables * 10,
         paymentStatus: 'Pending',
       };
     } else {
@@ -129,6 +131,7 @@ router.post('/', async (req, res, next) => {
         requestor: { name: rname, email: remail },
         registrants,
         registrantCount: registrants.length,
+        headcount: registrants.length,
         paymentStatus: 'Pending',
       };
     }
@@ -147,10 +150,13 @@ router.post('/', async (req, res, next) => {
               ...record.registrants.map((r) => ({ ...r, company: record.company })),
             ]
           : record.registrants.map((r) => ({ ...r, company: record.company }));
+    // Push the registration's headcount onto every attendee contact (HubSpot
+    // `headcount` number property, configurable via HUBSPOT_HEADCOUNT_PROPERTY).
+    const contactsForForm = formContacts.map((c) => ({ ...c, headcount: record.headcount }));
     // UTM / attribution forwarded from the landing page. HubSpot reflects UTMs
     // via the page URL + the hubspotutk cookie.
     const utm = pickUtm(body.utm || body);
-    const form = await submitRegistrationToForm(formContacts, {
+    const form = await submitRegistrationToForm(contactsForForm, {
       pageName: `${event.name} Registration`,
       pageUri: body.pageUri,
       hutk: body.hutk,

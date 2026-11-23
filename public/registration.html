@@ -82,8 +82,8 @@
   .seg{display:flex;gap:3px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:3px}
   .seg button{flex:1;border:0;background:transparent;color:var(--muted);padding:8px 6px;border-radius:7px;font-size:12.5px;font-weight:600;transition:.15s}
   .seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent-strong);box-shadow:var(--shadow)}
-  .reg-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr) auto;gap:7px;margin-bottom:7px}
-  @media(max-width:560px){.reg-row{grid-template-columns:1fr 1fr auto}.reg-row .r-email{grid-column:1 / -1}}
+  .reg-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,1fr) auto;gap:7px;margin-bottom:7px}
+  @media(max-width:560px){.reg-row{grid-template-columns:1fr 1fr auto}.reg-row .r-email,.reg-row .r-phone{grid-column:1 / -1}}
   .reg-row input{padding:8px 10px;font-size:13px}
   .reg-del{border:1px solid var(--border);background:var(--surface-2);color:var(--faint);width:34px;border-radius:8px;font-size:15px}
   .reg-del:hover{color:#d64545;border-color:#d64545}
@@ -428,24 +428,24 @@ function segInit(id,key){document.getElementById(id).querySelectorAll('button').
 segInit('i_seg','i_rel');segInit('g_seg','g_rel');segInit('t_seg','t_rel');
 
 /* group attendees */
-function addReg(name='',title='',email=''){
+function addReg(name='',title='',email='',mobile=''){
   const row=document.createElement('div');row.className='reg-row';
-  row.innerHTML=`<input type="text" class="r-name" placeholder="Full name" value="${esc(name)}"><input type="text" class="r-title" placeholder="Job title" value="${esc(title)}"><input type="email" class="r-email" placeholder="email@company.com" value="${esc(email)}"><button class="reg-del" title="Remove" onclick="this.parentElement.remove();countRegs()">×</button>`;
+  row.innerHTML=`<input type="text" class="r-name" placeholder="Full name" value="${esc(name)}"><input type="text" class="r-title" placeholder="Job title" value="${esc(title)}"><input type="email" class="r-email" placeholder="email@company.com" value="${esc(email)}"><input type="tel" class="r-phone" placeholder="Contact number" value="${esc(mobile)}"><button class="reg-del" title="Remove" onclick="this.parentElement.remove();countRegs()">×</button>`;
   row.querySelectorAll('input').forEach(i=>i.addEventListener('input',countRegs));
   document.getElementById('g_list').appendChild(row);countRegs();
 }
-function readRegs(){return [...document.querySelectorAll('#g_list .reg-row')].map(r=>({name:r.querySelector('.r-name').value.trim(),title:r.querySelector('.r-title').value.trim(),email:r.querySelector('.r-email').value.trim()})).filter(r=>r.name||r.email||r.title);}
+function readRegs(){return [...document.querySelectorAll('#g_list .reg-row')].map(r=>({name:r.querySelector('.r-name').value.trim(),title:r.querySelector('.r-title').value.trim(),email:r.querySelector('.r-email').value.trim(),mobile:r.querySelector('.r-phone').value.trim()})).filter(r=>r.name||r.email||r.title||r.mobile);}
 function countRegs(){const n=readRegs().length;document.getElementById('g_count').textContent=n+' registrant'+(n===1?'':'s');}
 
 function relLabel(v){return v==='client'?'Sprout Client':'Non-Sprout Client';}
 
 /* table attendees (optional) */
-function addRegT(name='',title='',email=''){
+function addRegT(name='',title='',email='',mobile=''){
   const row=document.createElement('div');row.className='reg-row';
-  row.innerHTML=`<input type="text" class="r-name" placeholder="Full name" value="${esc(name)}"><input type="text" class="r-title" placeholder="Job title" value="${esc(title)}"><input type="email" class="r-email" placeholder="email@company.com" value="${esc(email)}"><button class="reg-del" title="Remove" onclick="this.parentElement.remove()">×</button>`;
+  row.innerHTML=`<input type="text" class="r-name" placeholder="Full name" value="${esc(name)}"><input type="text" class="r-title" placeholder="Job title" value="${esc(title)}"><input type="email" class="r-email" placeholder="email@company.com" value="${esc(email)}"><input type="tel" class="r-phone" placeholder="Contact number" value="${esc(mobile)}"><button class="reg-del" title="Remove" onclick="this.parentElement.remove()">×</button>`;
   document.getElementById('t_list').appendChild(row);
 }
-function readRegsT(){return [...document.querySelectorAll('#t_list .reg-row')].map(r=>({name:r.querySelector('.r-name').value.trim(),title:r.querySelector('.r-title').value.trim(),email:r.querySelector('.r-email').value.trim()})).filter(r=>r.name||r.email||r.title);}
+function readRegsT(){return [...document.querySelectorAll('#t_list .reg-row')].map(r=>({name:r.querySelector('.r-name').value.trim(),title:r.querySelector('.r-title').value.trim(),email:r.querySelector('.r-email').value.trim(),mobile:r.querySelector('.r-phone').value.trim()})).filter(r=>r.name||r.email||r.title||r.mobile);}
 function countTables(){const t=Math.max(1,Number(document.getElementById('t_tables').value)||1);document.getElementById('t_count').textContent=t+' table'+(t===1?'':'s')+' · '+(t*SEATS_PER_TABLE)+' seats';}
 
 /* submit individual */

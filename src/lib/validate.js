@@ -14,8 +14,9 @@ export function required(obj, fields) {
 }
 
 /**
- * Normalise a list of registrants to { name, title, email }. The job title is
- * preserved so each additional attendee is registered with their full details.
+ * Normalise a list of registrants to { name, title, email, mobile }. Job title
+ * and contact number are preserved so each attendee is registered (and pushed
+ * to HubSpot) with their full details.
  */
 export function normaliseRegistrants(input) {
   if (!Array.isArray(input)) return [];
@@ -24,8 +25,9 @@ export function normaliseRegistrants(input) {
       name: String(r?.name ?? '').trim(),
       title: String(r?.title ?? '').trim(),
       email: String(r?.email ?? '').trim(),
+      mobile: String(r?.mobile ?? '').trim(),
     }))
-    .filter((r) => r.name || r.email || r.title);
+    .filter((r) => r.name || r.email || r.title || r.mobile);
 }
 
 export class ValidationError extends Error {
